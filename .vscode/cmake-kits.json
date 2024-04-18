@@ -1,0 +1,10 @@
+[
+    {
+      "name": "GCC 5.4.0 avr",
+      "compilers": {
+        "C": "/usr/bin/avr-gcc",
+        "CXX": "/usr/bin/avr-g++"
+      },
+      "isTrusted": true
+    }
+  ]
