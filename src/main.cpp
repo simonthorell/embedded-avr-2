@@ -3,6 +3,7 @@
 //=============================================================================
 #include <avr/io.h>
 #include "drivers/serial.h"
+#include "led.h"
 
 #define F_CPU     16000000UL  // Set MCU clock speed to 16MHz
 #define DATA_BITS 8           // Set data bits for 8-bit MCU
@@ -18,6 +19,9 @@ int main(void) {
     // Initialize RX/TX with defined baud rate and data bits
     Serial serial;
     serial.uart_init(BAUD_RATE, DATA_BITS);
+
+    // Create an LED object using digital pin 3
+    LED led_green(3);
 
     // Run Main Loop Forever
     loop(serial);

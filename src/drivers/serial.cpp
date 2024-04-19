@@ -1,5 +1,5 @@
 //======================================================================
-// Serial Class Implementation
+// Serial Driver Class Implementation
 //======================================================================
 #include "drivers/serial.h"
 #include "drivers/config.h"
