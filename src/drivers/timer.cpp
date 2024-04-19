@@ -60,11 +60,11 @@ void Timer::_init_timer_0(TimeUnit unit) {
 
     if (unit == MICROS) {
         // Set compare match register for ~1us @16MHz
-        OCR0A = OCR_MICROS;
+        OCR0A = ocr_micros;
         TCCR0B |= ((1 << CS00));  // No prescaling
     } else {
         // Set compare match register for ~1ms @16MHz
-        OCR0A = OCR_MILLIS;
+        OCR0A = ocr_millis;
         TCCR0B |= ((1 << CS01) | (1 << CS00));  // Prescaler 64
     }
 }
@@ -78,11 +78,11 @@ void Timer::_init_timer_1(TimeUnit unit) {
 
     if (unit == MICROS) {
         // Set compare match register for ~1us @16MHz
-        OCR1A = OCR_MICROS;
+        OCR1A = ocr_micros;
         TCCR1B |= (1 << CS10);  // No prescaling
     } else {
         // Set compare match register for ~1ms @16MHz
-        OCR1A = OCR_MILLIS;
+        OCR1A = ocr_millis;
         TCCR1B |= (1 << CS10) | (1 << CS11);  // Prescaler 64
     }
 }
@@ -93,11 +93,11 @@ void Timer::_init_timer_2(TimeUnit unit) {
 
     if (unit == MICROS) {
         // Set compare match register for ~1us @16MHz
-        OCR2A = OCR_MICROS;
+        OCR2A = ocr_micros;
         TCCR2B |= (1 << CS20);  // No prescaling
     } else {
         // Set compare match register for ~1ms @16MHz
-        OCR2A = OCR_MILLIS;
+        OCR2A = ocr_millis;
         TCCR2B |= (1 << CS22);  // Prescaler 64
     }
 }
@@ -125,3 +125,14 @@ ISR(TIMER2_COMPA_vect) {
         Timer::timer_2_ptr->overflow_counter++;
     }
 }
+
+//======================================================================
+// Constexpr Definitions
+// Description: These definitions are used to calculate the OCR values
+//              for the timer based on the CPU frequency and prescaler.
+//              The calculations are done at compile time, and will be 
+//              used to set the OCR values for the timer more efficiently
+//              than using macros.
+//======================================================================
+static constexpr uint32_t ocr_micros = ((F_CPU / SEC_TO_US / PRESCALER_US) - 1);
+static constexpr uint32_t ocr_millis = ((F_CPU / SEC_TO_MS / PRESCALER_MS) - 1);

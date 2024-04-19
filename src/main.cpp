@@ -27,7 +27,7 @@ int main(void) {
     serial.uart_init(BAUD_RATE, DATA_BITS);
 
     /* TODO: MILLIS works fine for all timers, but micros is way off... */
-    Timer timer_1(Timer::TIMER_2, Timer::MILLIS);
+    Timer timer_1(Timer::TIMER_1, Timer::MILLIS);
     timer_1.start();
 
     LED led_purple(8);

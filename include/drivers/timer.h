@@ -9,9 +9,9 @@
 #define PRESCALER_MS 64          // Prescaler for milliseconds
 #define SEC_TO_US    1000000UL   // us per second
 #define SEC_TO_MS    1000        // ms per second
-#define OCR_MICROS   15          // ((F_CPU / (PRESCALER_US * SEC_TO_US)) - 1)
-#define OCR_MILLIS   249         // ((F_CPU / (PRESCALER_MS * SEC_TO_MS)) - 1)
-// For some reason the compiler doesn't like the above calculations for OCR...
+// #define OCR_MICROS   15          // ((F_CPU / (PRESCALER_US * SEC_TO_US)) - 1)
+// #define OCR_MILLIS   249         // ((F_CPU / (PRESCALER_MS * SEC_TO_MS)) - 1)
+// // For some reason the compiler doesn't like the above calculations for OCR...
 
 class Timer {
 public:
@@ -26,6 +26,10 @@ public:
     static Timer* timer_0_ptr;  // Pointers to timer instances
     static Timer* timer_1_ptr;
     static Timer* timer_2_ptr;
+
+    // Constants for OCR0A and OCR2A to achive low latency
+    static constexpr uint32_t ocr_micros = ((F_CPU / SEC_TO_US / PRESCALER_US) - 1);
+    static constexpr uint32_t ocr_millis = ((F_CPU / SEC_TO_MS / PRESCALER_MS) - 1);
 
 private:
     TimerType _type;
