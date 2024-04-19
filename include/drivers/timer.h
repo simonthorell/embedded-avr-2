@@ -1,38 +1,38 @@
 #ifndef TIMER_H
 #define TIMER_H
 
-#include <stdint.h>
+#include <avr/io.h>
+#include <avr/interrupt.h>
 
-#define PRESCALER 64 // Timer prescaler value
-#define MS_TO_SEC 1000     // Milliseconds to seconds conversion
-
-enum TimerNumber {
-    TIMER_0,
-    TIMER_1,
-    TIMER_2
-};
-
-enum TimerType {
-    MILLIS,
-    MICROS,
-    OVERFLOW
-};
+#define F_CPU        16000000UL  // Clock frequency
+#define PRESCALER_US 1           // Prescaler for microseconds
+#define PRESCALER_MS 64          // Prescaler for milliseconds
+#define SEC_TO_US    1000000UL   // us per second
+#define SEC_TO_MS    1000        // ms per second
+#define OCR_MICROS   15          // ((F_CPU / (PRESCALER_US * SEC_TO_US)) - 1)
+#define OCR_MILLIS   249         // ((F_CPU / (PRESCALER_MS * SEC_TO_MS)) - 1)
+// For some reason the compiler doesn't like the above calculations for OCR...
 
 class Timer {
 public:
-    Timer(uint8_t timer_num, uint8_t timer_type, uint32_t f_cpu);  // Constructor accepts the timer number and CPU frequency
-    static void increment();   // Increment the milliseconds counter
-    static bool checkInterval(uint16_t ms);
-    static void complete(); // Static method for ISR to set the completion flag
+    enum TimerType { TIMER_0, TIMER_1, TIMER_2 };
+    enum TimeUnit { MILLIS, MICROS };
+
+    Timer(TimerType type, TimeUnit unit);
+    void start();
+    void stop();
+    volatile unsigned long overflow_counter;
+
+    static Timer* timer_0_ptr;  // Pointers to timer instances
+    static Timer* timer_1_ptr;
+    static Timer* timer_2_ptr;
 
 private:
-    static volatile bool _is_completed; // ISR flag to indicate timer completion
-    static volatile uint32_t milliseconds; // Stores elapsed milliseconds
-
-    uint32_t _f_cpu;     // Store the CPU frequency
-    uint8_t _timer_num;  // Timer number (0, 1, or 2)
-    uint8_t _timer_type; // Timer type (setup for millis, micros or overflow)
-    void init_millis();  // Private method to setup timer specifics
+    TimerType _type;
+    TimeUnit _unit;
+    void _init_timer_0(TimeUnit unit);
+    void _init_timer_1(TimeUnit unit);
+    void _init_timer_2(TimeUnit unit);
 };
 
-#endif // TIMER_H
+#endif
