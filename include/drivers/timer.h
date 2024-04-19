@@ -9,9 +9,6 @@
 #define PRESCALER_MS 64          // Prescaler for milliseconds
 #define SEC_TO_US    1000000UL   // us per second
 #define SEC_TO_MS    1000        // ms per second
-// #define OCR_MICROS   15          // ((F_CPU / (PRESCALER_US * SEC_TO_US)) - 1)
-// #define OCR_MILLIS   249         // ((F_CPU / (PRESCALER_MS * SEC_TO_MS)) - 1)
-// // For some reason the compiler doesn't like the above calculations for OCR...
 
 class Timer {
 public:
