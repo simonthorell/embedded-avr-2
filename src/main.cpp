@@ -1,31 +1,42 @@
+//=============================================================================
 // Main application file
+//=============================================================================
 #include <avr/io.h>
-#include <avr/pgmspace.h>
-#include "usart.h"
+#include "drivers/serial.h"
 
-void loop(USART &serial);
+#define F_CPU     16000000UL  // Set MCU clock speed to 16MHz
+#define DATA_BITS 8           // Set data bits for 8-bit MCU
+#define BAUD_RATE 9600        // Set baud rate to 9600 bps
 
+// Declare function prototypes
+void loop(Serial &serial);
+
+//=============================================================================
+// Main function
+//=============================================================================
 int main(void) {
-    USART serial;
-    serial.init(); // Init USART with default baud rate
+    // Initialize RX/TX with defined baud rate and data bits
+    Serial serial;
+    serial.uart_init(BAUD_RATE, DATA_BITS);
 
-    loop(serial);  // Run the app loop
+    // Run Main Loop Forever
+    loop(serial);
     
     return 0;
 }
 
-void loop(USART &serial) {
-    char receivedCommand[USART_CMD_BUFFER]; // command buffer
+//=============================================================================
+// Main loop
+//=============================================================================
+void loop(Serial &serial) {
+    while (true) {
 
-    while (1) {
-        serial.print("Type a command: ");
-        serial.receiveString(receivedCommand, USART_CMD_BUFFER);
-        
-        /* TODO: Add command processing logic here... */
-
-        // Echo back the received string for testing
-        serial.print("\r\nYou typed: ");
-        serial.print(receivedCommand);
-        serial.print("\r\n");
+        // Check serial buffer if command is ready
+        if (uart_command_ready) {
+            char buffer[64];
+            serial.uart_rec_str(buffer, 64);
+            serial.uart_put_str(buffer);
+        }
     }
+
 }
