@@ -1,19 +1,21 @@
 //=============================================================================
 // Main application file
-// AtMega328p simulation: https://wokwi.com/projects/395865725914835969
 //*****************************************************************************
-// Application Commands
+// Application Commands:
 // Deluppgift 1: led on
 // Deluppgift 2: read adc
 // Deluppgift 3: ledpowerfreq <power> <freq>  (power: 0-255, freq: 200-5000)
 // Deluppgift 4: button
 // Deluppgift 5: ledramptime <time>           (time(ms): 0-5000)
+//*****************************************************************************
+// ATmega328p simulation: https://wokwi.com/projects/395865725914835969
 //=============================================================================
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include "drivers/serial.h"
 #include "drivers/timer.h"
 #include "drivers/adc.h"
+#include "drivers/pwm.h"
 #include "led.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,7 +25,8 @@
 #define BAUD_RATE 9600        // Set baud rate to 9600 bps
 
 // Declare function prototypes
-void loop(Serial &serial, ADConverter &adc, LED &led_d3, LED &led_d8, Timer &timer_1);
+void loop(Serial &serial, ADConverter &adc, PWModulation &pwm, LED &led_d3, 
+          LED &led_d8, Timer &timer_1);
 
 //=============================================================================
 // Main function
@@ -33,6 +36,7 @@ int main(void) {
     Serial serial;
     serial.uart_init(BAUD_RATE, DATA_BITS);
     ADConverter adc;
+    PWModulation pwm(11); // PWM digital pin 11 (using timer 2)
 
     // Initialize timers
     Timer timer_1(Timer::TIMER_1, Timer::MILLIS);
@@ -46,7 +50,7 @@ int main(void) {
     sei();
 
     // Loop forever
-    loop(serial, adc, led_d3, led_d8, timer_1);
+    loop(serial, adc, pwm, led_d3, led_d8, timer_1);
     
     return 0;
 }
@@ -54,7 +58,9 @@ int main(void) {
 //=============================================================================
 // Main loop
 //=============================================================================
-void loop(Serial &serial, ADConverter &adc, LED &led_d3, LED &led_d8, Timer &timer_1) {
+void loop(Serial &serial, ADConverter &adc, PWModulation &pwm, LED &led_d3, 
+          LED &led_d8, Timer &timer_1) {
+    
     serial.uart_put_str("Loop started...\n"); // Debug message
 
     unsigned long led_d3_time = 0; // Initialize LED counter

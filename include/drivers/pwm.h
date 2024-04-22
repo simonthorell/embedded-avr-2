@@ -7,7 +7,7 @@
 class PWModulation {
 public:
     // Constructor
-    PWModulation(uint8_t &pwmPin); // Constructor
+    PWModulation(const uint8_t &pwmPin); // Constructor
 
     bool init();
     void set_duty_cycle(uint8_t duty);
@@ -20,7 +20,7 @@ private:
     uint8_t _duty_cycle;
 
     // Validation methods (compile-time checks)
-    static constexpr bool valid_pin(uint8_t _pin);
+    static constexpr bool valid_pwm_pin(uint8_t _pin);
 };
 
 #endif // PWM_H
