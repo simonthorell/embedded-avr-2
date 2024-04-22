@@ -16,22 +16,19 @@ public:
     enum TimeUnit { MILLIS, MICROS };
 
     Timer(TimerNum num, TimeUnit unit); // Constructor
+    void init();
     void start();
     void stop();
     void reset();
     volatile unsigned long overflow_counter;
-
-    // Pointers to timer instances
-    static Timer* timer_0_ptr;
-    static Timer* timer_1_ptr;
-    static Timer* timer_2_ptr;
+    static Timer* timer_ptr; // Pointer to the timer instance
 
 private:
     TimerNum _num;
     TimeUnit _unit;
-    void _init_timer_0(TimeUnit unit);
-    void _init_timer_1(TimeUnit unit);
-    void _init_timer_2(TimeUnit unit);
+    void _init_timer_0();
+    void _init_timer_1();
+    void _init_timer_2();
 
     // Constants for OCR0A and OCR2A to achive low latency
     static constexpr uint32_t _ocr_micros = ((F_CPU / SEC_TO_US / PRESCALER_US) - 1);
