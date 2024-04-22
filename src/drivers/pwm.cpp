@@ -9,7 +9,7 @@ const float PROPORTIONAL_GAIN = 0.1; // Gain for proportional control
 // Constructor
 //==============================================================================
 PWModulation::PWModulation(const uint8_t &pwm_pin) : _pin(pwm_pin) {
-    if (valid_pwm_pin(_pin)) {
+    if (_valid_pwm_pin(_pin)) {
         // Assign the correct output compare register based on the PWM pin
         switch (pwm_pin) {
             // Assign to _ocr8 or _ocr16 depending on the timer resolution
@@ -28,8 +28,8 @@ PWModulation::PWModulation(const uint8_t &pwm_pin) : _pin(pwm_pin) {
 // Description:   configure the PWM output pin and set the initial duty cycle
 //==============================================================================
 bool PWModulation::init() {
-    if (valid_pwm_pin(_pin)) {
-        SETUP_PWM_FOR_PIN(_pin);   // Register bits set in config.h
+    if (_valid_pwm_pin(_pin)) {
+        SETUP_PWM_FOR_PIN(_pin);   // Register bits defined in pwm.h
         set_duty_cycle(255);       // Set initial duty cycle to max (0-255)
         return true;               // Valid pin
     } else {
@@ -70,7 +70,7 @@ void PWModulation::adjust_duty_cycle(int error) {
 // Description: Ensure the PWM pin is valid at compile time, the valid pins
 //              are 3, 5, 6, 9, 10, and 11 on the Arduino Uno.
 //==============================================================================
-constexpr bool PWModulation::valid_pwm_pin(const uint8_t _pin) {
+constexpr bool PWModulation::_valid_pwm_pin(const uint8_t _pin) {
     return _pin == 3 || _pin == 5 || _pin == 6 || 
            _pin == 9 || _pin == 10 || _pin == 11;
 }

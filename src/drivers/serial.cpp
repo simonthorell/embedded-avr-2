@@ -62,7 +62,6 @@ void Serial::uart_init(const uint32_t& baud_rate, const uint8_t& data_bits){
 
     } else {
         initialized = false;
-        uart_put_str("UART Initialization Failed!\r\n");
     }
 }
 
@@ -114,7 +113,7 @@ void Serial::uart_rec_str(char* buffer, const uint8_t& buf_size) {
 
     // Make sure the buffer is <= specified BUFFER_SIZE
     if (buf_size < BUFFER_SIZE) {
-        char* error_msg = "Specified buffer size is too small!\n";
+        const char* error_msg = "Specified buffer size is too small!\n";
         uart_put_str(error_msg);
         buffer[0] = '\0'; // Ensure the buffer is null-terminated
         return;
@@ -122,7 +121,7 @@ void Serial::uart_rec_str(char* buffer, const uint8_t& buf_size) {
 
     // Command longer than buffer size => buffer overflow...
     if (uart_buffer_overflow) {
-        char* error_msg = "Buffer overflowed, make sure your command is within buffer range!\n";
+        const char* error_msg = "Buffer overflowed, make sure your command is within buffer range!\n";
         uart_put_str(error_msg);
         buffer[0] = '\0'; // Ensure the buffer is null-terminated
         return;

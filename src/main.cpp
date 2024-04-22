@@ -24,33 +24,36 @@
 #define DATA_BITS 8           // Set data bits for 8-bit MCU
 #define BAUD_RATE 9600        // Set baud rate to 9600 bps
 
+#define BLINK_TIME 100                   // Max blink time (ms)
+#define BLINK_FACTOR (5000 / BLINK_TIME) // 5000mV (max voltage) / Max interval
+
 // Declare function prototypes
 void loop(Serial &serial, ADConverter &adc, PWModulation &pwm, LED &led_d3, 
-          LED &led_d8, Timer &timer_1);
+          Timer &timer_1);
 
 //=============================================================================
 // Main function
 //=============================================================================
 int main(void) {
-    // Initialize hardware drivers
     Serial serial;
     serial.uart_init(BAUD_RATE, DATA_BITS);
-    ADConverter adc;
-    PWModulation pwm(11); // PWM digital pin 11 (using timer 2)
 
-    // Initialize timers
+    ADConverter adc;
+
+    PWModulation pwm(11); // PWM digital pin 11 (using timer 2)
+    bool pwm_init = pwm.init();
+    if (!pwm_init) {
+        serial.uart_put_str("PWM initialization failed!\r\n");
+    }
+
     Timer timer_1(Timer::TIMER_1, Timer::MILLIS);
     timer_1.init();
 
-    // Initialize GPIO pheripherals
     LED led_d3(3);
-    LED led_d8(8);
 
-    // Enable Interupts globally
-    sei();
+    sei(); // Enable Interupts globally
 
-    // Loop forever
-    loop(serial, adc, pwm, led_d3, led_d8, timer_1);
+    loop(serial, adc, pwm, led_d3, timer_1); // Run Main Loop (infinite)
     
     return 0;
 }
@@ -59,27 +62,47 @@ int main(void) {
 // Main loop
 //=============================================================================
 void loop(Serial &serial, ADConverter &adc, PWModulation &pwm, LED &led_d3, 
-          LED &led_d8, Timer &timer_1) {
+          Timer &timer_1) {
     
     serial.uart_put_str("Loop started...\n"); // Debug message
 
     unsigned long led_d3_time = 0; // Initialize LED counter
-    unsigned long led_d8_time = 0; // Initialize LED counter
+    uint16_t prev_blink_time = 0;  // Initialize previous blink time (ms)
+    uint16_t blink_time = 200;     // Initialize blink time (ms)
 
-    uint16_t prev_blink_time = 0; // Initialize previous blink time (ms)
-    uint16_t blink_time = 200;    // Initialize blink time (ms)
+    uint8_t duty_cycle = 0;        // Initialize duty cycle
+    bool ramp_up = true;           // Initialize ramp direction
+    static int overflow_count = 0;  // Initialize temp overflow counter
 
     while (true) {
         // increment timer counters and reset the timers
         led_d3_time += timer_1.overflow_counter;
-        led_d8_time += timer_1.overflow_counter;
+        // Ramp Led up and down every 4 overflows/ms (replace with timer0 ?)
+        overflow_count += timer_1.overflow_counter;
+        if (overflow_count >= 4) {  // Update duty cycle every 2 overflows
+            if (ramp_up) {
+                duty_cycle++;
+                if (duty_cycle >= 255) {
+                    duty_cycle = 255;
+                    ramp_up = false;
+                }
+            } else {
+                duty_cycle--;
+                if (duty_cycle <= 0) {
+                    duty_cycle = 0;
+                    ramp_up = true;
+                }
+            }
+            pwm.set_duty_cycle(duty_cycle);
+            overflow_count = 0; // Reset the counter
+        }
         timer_1.reset();
 
         // Read ADC value from channel 0 and convert to voltage
         prev_blink_time = blink_time;
         uint16_t adc_reading = adc.read_channel(0);
         adc.convert_to_mv(adc_reading);
-        blink_time = adc_reading / 50; // Max voltage == 100ms
+        blink_time = adc_reading / BLINK_FACTOR;
 
         // Notify if blink time has changed
         if(blink_time != prev_blink_time) {
@@ -94,14 +117,9 @@ void loop(Serial &serial, ADConverter &adc, PWModulation &pwm, LED &led_d3,
             }
         }
 
-        if (led_d3_time >= 200) {
+        if (led_d3_time >= blink_time) {
             led_d3.toggle();
             led_d3_time = 0; // Reset LED counter
-        }
-
-        if (led_d8_time >= blink_time) {
-            led_d8.toggle();
-            led_d8_time = 0; // Reset LED counter
         }
 
         // Check serial buffer if command is ready
