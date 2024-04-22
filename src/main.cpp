@@ -16,6 +16,7 @@
 #include "drivers/adc.h"
 #include "led.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 #define F_CPU     16000000UL  // Set MCU clock speed to 16MHz
 #define DATA_BITS 8           // Set data bits for 8-bit MCU
@@ -31,7 +32,6 @@ int main(void) {
     // Initialize hardware drivers
     Serial serial;
     serial.uart_init(BAUD_RATE, DATA_BITS);
-
     ADConverter adc;
 
     // Initialize timers
@@ -60,7 +60,8 @@ void loop(Serial &serial, ADConverter &adc, LED &led_d3, LED &led_d8, Timer &tim
     unsigned long led_d3_time = 0; // Initialize LED counter
     unsigned long led_d8_time = 0; // Initialize LED counter
 
-    uint16_t blink_time = 200; // Initialize blink time (ms)
+    uint16_t prev_blink_time = 0; // Initialize previous blink time (ms)
+    uint16_t blink_time = 200;    // Initialize blink time (ms)
 
     while (true) {
         // increment timer counters and reset the timers
@@ -68,8 +69,24 @@ void loop(Serial &serial, ADConverter &adc, LED &led_d3, LED &led_d8, Timer &tim
         led_d8_time += timer_1.overflow_counter;
         timer_1.reset();
 
-        // Read ADC value from channel 0
-        blink_time = adc.readADC(0);
+        // Read ADC value from channel 0 and convert to voltage
+        prev_blink_time = blink_time;
+        uint16_t adc_reading = adc.read_channel(0);
+        adc.convert_to_mv(adc_reading);
+        blink_time = adc_reading / 50; // Max voltage == 100ms
+
+        // Notify if blink time has changed
+        if(blink_time != prev_blink_time) {
+            if (blink_time == 0) {
+                serial.uart_put_str("Blink time set to fixed light\r\n");
+            } else {
+                char buffer[20];
+                serial.uart_put_str("Blink time: ");
+                sprintf(buffer, "%d", blink_time);
+                serial.uart_put_str(buffer);
+                serial.uart_put_str("ms\r\n");
+            }
+        }
 
         if (led_d3_time >= 200) {
             led_d3.toggle();
@@ -92,5 +109,4 @@ void loop(Serial &serial, ADConverter &adc, LED &led_d3, LED &led_d8, Timer &tim
         }
 
     }
-
 }

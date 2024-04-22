@@ -5,8 +5,12 @@
 
 class ADConverter {
 public:
-    ADConverter(); // Constructor
-    uint16_t readADC(uint8_t ch); 
+    // Constructor
+    ADConverter();
+
+    // Public Methods
+    uint16_t read_channel(uint8_t ch);
+    void convert_to_mv(uint16_t &adc_value);
 };
 
 #endif // ADC_H

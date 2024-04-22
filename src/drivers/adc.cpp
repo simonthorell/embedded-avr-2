@@ -3,6 +3,9 @@
 //==============================================================================
 #include "drivers/adc.h"
 
+#define MAX_ADC_VALUE 1023
+#define MAX_MILLIVOLT 5000
+
 //==============================================================================
 // Constructor
 //==============================================================================
@@ -17,7 +20,7 @@ ADConverter::ADConverter() {
 // Public Method: Read
 // Description:   Read the value from the specified ADC channel
 //==============================================================================
-uint16_t ADConverter::readADC(uint8_t ch) {
+uint16_t ADConverter::read_channel(uint8_t ch) {
     // Mask the channel number to ensure it is within 0 to 7
     ch &= 0b00000111;
 
@@ -32,4 +35,8 @@ uint16_t ADConverter::readADC(uint8_t ch) {
 
     // Return the ADC conversion result
     return ADC;
+}
+
+void ADConverter::convert_to_mv(uint16_t &adc_value) {
+    adc_value = static_cast<uint16_t>((static_cast<float>(adc_value) * MAX_MILLIVOLT) / MAX_ADC_VALUE);
 }
