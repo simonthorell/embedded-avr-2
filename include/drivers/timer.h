@@ -12,28 +12,30 @@
 
 class Timer {
 public:
-    enum TimerType { TIMER_0, TIMER_1, TIMER_2 };
+    enum TimerNum { TIMER_0, TIMER_1, TIMER_2 };
     enum TimeUnit { MILLIS, MICROS };
 
-    Timer(TimerType type, TimeUnit unit);
+    Timer(TimerNum num, TimeUnit unit); // Constructor
     void start();
     void stop();
+    void reset();
     volatile unsigned long overflow_counter;
 
-    static Timer* timer_0_ptr;  // Pointers to timer instances
+    // Pointers to timer instances
+    static Timer* timer_0_ptr;
     static Timer* timer_1_ptr;
     static Timer* timer_2_ptr;
 
-    // Constants for OCR0A and OCR2A to achive low latency
-    static constexpr uint32_t ocr_micros = ((F_CPU / SEC_TO_US / PRESCALER_US) - 1);
-    static constexpr uint32_t ocr_millis = ((F_CPU / SEC_TO_MS / PRESCALER_MS) - 1);
-
 private:
-    TimerType _type;
+    TimerNum _num;
     TimeUnit _unit;
     void _init_timer_0(TimeUnit unit);
     void _init_timer_1(TimeUnit unit);
     void _init_timer_2(TimeUnit unit);
+
+    // Constants for OCR0A and OCR2A to achive low latency
+    static constexpr uint32_t _ocr_micros = ((F_CPU / SEC_TO_US / PRESCALER_US) - 1);
+    static constexpr uint32_t _ocr_millis = ((F_CPU / SEC_TO_MS / PRESCALER_MS) - 1);
 };
 
 #endif
