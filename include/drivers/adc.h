@@ -3,6 +3,8 @@
 
 #include <avr/io.h>
 
+#define MAX_INPUT_VOLTAGE 5000 // 5000mV (5V)
+
 class ADConverter {
 public:
     // Constructor
