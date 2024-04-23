@@ -12,7 +12,7 @@ LED::LED(uint8_t pin) : _gpio(DIGITAL_PIN, pin) {
 }
 
 //======================================================================
-// LED Public Methods
+// LED Public Methods: turn_on, turn_off, toggle, is_on, is_off
 //======================================================================
 void LED::turn_on() {
     _gpio.set_high();
@@ -34,6 +34,13 @@ bool LED::is_off() {
     return _gpio.is_low();
 }
 
+//======================================================================
+// LED Public Methods: blink, adc_blink
+// Description: These methods are used to blink the LED at a given
+//              interval. The blink method is used to blink the LED
+//              at a fixed interval, while the adc_blink method is used
+//              to blink the LED at an interval based on the ADC reading
+//======================================================================
 void LED::blink(const uint16_t &blink_interval, const Timer &timer) {
     _overflow_counter += timer.overflow_counter;
 
@@ -48,8 +55,9 @@ void LED::adc_blink(const Timer &timer, Serial &serial,
     
     _prev_blink_interval = _blink_interval;
     uint16_t adc_reading = adc.read_channel(adc_ch);
-    adc.convert_to_mv(adc_reading);
-    _blink_interval = adc_reading / (MAX_INPUT_VOLTAGE / max_interval);
+    uint16_t adc_voltage = adc_reading;
+    adc.convert_to_mv(adc_voltage);
+    _blink_interval = adc_voltage / (MAX_INPUT_VOLTAGE / max_interval);
 
     if(_blink_interval == 0) {
         turn_on();
@@ -58,16 +66,15 @@ void LED::adc_blink(const Timer &timer, Serial &serial,
     }
 
     // Notify if blink time has changed
-    if(_blink_interval != _prev_blink_interval) {
+    if (_blink_interval != _prev_blink_interval) {
         if (_blink_interval == 0) {
-            serial.uart_put_str("Blink off and LED set to fixed light\r\n");
+            serial.uart_put_str("Blink off. LED set to fixed light.\r\n");
         } else {
-            char buffer[20];
-            serial.uart_put_str("Blink time: ");
-            sprintf(buffer, "%d", _blink_interval);
-            serial.uart_put_str(buffer);
-            serial.uart_put_str("ms\r\n");
+            // Buffer to hold UART message
+            char message[128];
+            sprintf(message, "Blink interval: %dms (ADC value: %d, Voltage: %dmV)\r\n",
+                    _blink_interval, adc_reading, adc_voltage);
+            serial.uart_put_str(message);
         }
     }
-
 }

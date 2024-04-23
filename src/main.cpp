@@ -2,8 +2,8 @@
 // Main application file
 //*****************************************************************************
 // Application Commands:
-// Deluppgift 1: led on
-// Deluppgift 2: read adc
+// Deluppgift 1: ledblink
+// Deluppgift 2: ledadc
 // Deluppgift 3: ledpowerfreq <power> <freq>  (power: 0-255, freq: 200-5000)
 // Deluppgift 4: button
 // Deluppgift 5: ledramptime <time>           (time(ms): 0-5000)
@@ -17,8 +17,6 @@
 #include "drivers/adc.h"
 #include "drivers/pwm.h"
 #include "led.h"
-// #include <stdlib.h>
-// #include <stdio.h>
 
 #define F_CPU     16000000UL   // Set MCU clock speed to 16MHz
 #define DATA_BITS 8            // Set data bits for 8-bit MCU
@@ -29,8 +27,8 @@
 #define MAX_BLINK_INTERVAL 100  // Max blink time (ms)
 
 // Declare function prototypes
-void loop(Serial &serial, ADConverter &adc, PWModulation &pwm_d11, LED &led_d3, 
-          Timer &timer_1);
+void loop(Serial &serial, ADConverter &adc, PWModulation &pwm_led_d11, 
+          LED &led_d3, Timer &timer_1);
 
 //=============================================================================
 // Main function
@@ -41,8 +39,8 @@ int main(void) {
 
     ADConverter adc;
 
-    PWModulation pwm_d11(11); // PWM digital pin 11 (using timer 2)
-    pwm_d11.init();
+    PWModulation pwm_led_d11(11); // PWM digital pin 11 (using timer 2)
+    pwm_led_d11.init();
 
     Timer timer_1(Timer::TIMER_1, Timer::MILLIS);
     timer_1.init();
@@ -51,7 +49,7 @@ int main(void) {
 
     sei(); // Enable Interupts globally
 
-    loop(serial, adc, pwm_d11, led_d3, timer_1); // Run Main Loop (infinite)
+    loop(serial, adc, pwm_led_d11, led_d3, timer_1); // Run Main Loop (infinite)
     
     return 0;
 }
@@ -59,15 +57,12 @@ int main(void) {
 //=============================================================================
 // Main loop
 //=============================================================================
-void loop(Serial &serial, ADConverter &adc, PWModulation &pwm_d11, LED &led_d3, 
-          Timer &timer_1) {
-    serial.uart_put_str("Loop started...\n"); // Debug message
-
+void loop(Serial &serial, ADConverter &adc, PWModulation &pwm_led_d11, 
+          LED &led_d3, Timer &timer_1) {
     char rec_cmd[BUFFER_SIZE]; // serial command buffer
 
     while (true) {
-        // Ramp Led up and down every 4 overflows/ms (replace with timer0 ?)
-        pwm_d11.ramp_output(LED_RAMP_TIME, timer_1);
+        pwm_led_d11.ramp_output(LED_RAMP_TIME, timer_1);
         // led_d3.blink(blink_time, timer_1);
         led_d3.adc_blink(timer_1, serial, POT_ADC_CHANNEL, MAX_BLINK_INTERVAL);
 
