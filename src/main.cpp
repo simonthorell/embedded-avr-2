@@ -24,12 +24,14 @@
 #define DATA_BITS 8           // Set data bits for 8-bit MCU
 #define BAUD_RATE 9600        // Set baud rate to 9600 bps
 
-#define BLINK_TIME 100                   // Max blink time (ms)
+#define LED_RAMP_TIME 1000               // LED ramp time (ms)
+#define BLINK_TIME    100                // Max blink time (ms)
 #define BLINK_FACTOR (5000 / BLINK_TIME) // 5000mV (max voltage) / Max interval
 
 // Declare function prototypes
 void loop(Serial &serial, ADConverter &adc, PWModulation &pwm, LED &led_d3, 
           Timer &timer_1);
+void parse_command(const char* cmd);
 
 //=============================================================================
 // Main function
@@ -41,10 +43,7 @@ int main(void) {
     ADConverter adc;
 
     PWModulation pwm(11); // PWM digital pin 11 (using timer 2)
-    bool pwm_init = pwm.init();
-    if (!pwm_init) {
-        serial.uart_put_str("PWM initialization failed!\r\n");
-    }
+    pwm.init();
 
     Timer timer_1(Timer::TIMER_1, Timer::MILLIS);
     timer_1.init();
@@ -70,32 +69,14 @@ void loop(Serial &serial, ADConverter &adc, PWModulation &pwm, LED &led_d3,
     uint16_t prev_blink_time = 0;  // Initialize previous blink time (ms)
     uint16_t blink_time = 200;     // Initialize blink time (ms)
 
-    uint8_t duty_cycle = 0;        // Initialize duty cycle
-    bool ramp_up = true;           // Initialize ramp direction
-    static int overflow_count = 0;  // Initialize temp overflow counter
+    char rec_cmd[256]; // serial command buffer
 
     while (true) {
+        // Ramp Led up and down every 4 overflows/ms (replace with timer0 ?)
+        pwm.ramp_output(LED_RAMP_TIME, timer_1);
+
         // increment timer counters and reset the timers
         led_d3_time += timer_1.overflow_counter;
-        // Ramp Led up and down every 4 overflows/ms (replace with timer0 ?)
-        overflow_count += timer_1.overflow_counter;
-        if (overflow_count >= 4) {  // Update duty cycle every 2 overflows
-            if (ramp_up) {
-                duty_cycle++;
-                if (duty_cycle >= 255) {
-                    duty_cycle = 255;
-                    ramp_up = false;
-                }
-            } else {
-                duty_cycle--;
-                if (duty_cycle <= 0) {
-                    duty_cycle = 0;
-                    ramp_up = true;
-                }
-            }
-            pwm.set_duty_cycle(duty_cycle);
-            overflow_count = 0; // Reset the counter
-        }
         timer_1.reset();
 
         // Read ADC value from channel 0 and convert to voltage
@@ -122,15 +103,25 @@ void loop(Serial &serial, ADConverter &adc, PWModulation &pwm, LED &led_d3,
             led_d3_time = 0; // Reset LED counter
         }
 
-        // Check serial buffer if command is ready
+        // Process UART commands if a complete string is ready
         if (uart_command_ready) {
-            char rec_cmd[BUFFER_SIZE];
             serial.uart_rec_str(rec_cmd, BUFFER_SIZE);
             serial.uart_put_str("Received Command: ");
             serial.uart_put_str(rec_cmd);  // Print received command
             serial.uart_put_str("\r\n");   // Ensure newline after command
+            parse_command(rec_cmd);        // Parse the received command
             uart_command_ready = false;    // Reset command ready flag
         }
 
     }
+}
+
+//=============================================================================
+// Function:    parse_command
+// Description: Parses the received command string and toggles LED based on
+//              the power value (0-255). If power > 127, LED is turned on.
+//              If power <= 127, LED is turned off.
+//=============================================================================
+void parse_command(const char* cmd) {
+
 }

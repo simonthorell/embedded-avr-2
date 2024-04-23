@@ -2,6 +2,7 @@
 #define PWM_H
 
 #include <avr/io.h>
+#include "drivers/timer.h"
 
 //==============================================================================
 // Macors for configuring PWM pins and registers
@@ -35,13 +36,17 @@ public:
 
     bool init();
     void set_duty_cycle(uint8_t duty);
-    void adjust_duty_cycle(int error);
+    void ramp_output(const uint16_t &cycle_time, Timer &timer);
 
 private:
     uint8_t _pin;
     volatile uint16_t* _ocr16; // 16-bit output compare register (timer 1)
     volatile uint8_t* _ocr8;   // 8-bit output compare register (timer 0, 2)
     uint8_t _duty_cycle;
+
+    // Variables for ramp method
+    unsigned long _overflow_counter; 
+    bool _ramp_up;
 
     // Validation methods (compile-time checks)
     static constexpr bool _valid_pwm_pin(uint8_t _pin);

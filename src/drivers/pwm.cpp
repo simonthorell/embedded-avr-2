@@ -3,8 +3,6 @@
 //==============================================================================
 #include "drivers/pwm.h"
 
-const float PROPORTIONAL_GAIN = 0.1; // Gain for proportional control
-
 //==============================================================================
 // Constructor
 //==============================================================================
@@ -38,11 +36,9 @@ bool PWModulation::init() {
 }
 
 //==============================================================================
-// Public Method: setDutyCycle, adjustDutyCycle
+// Public Method: setDutyCycle
 // Description:   Set the duty cycle of the PWM signal. The duty cycle is
 //                a value between 0 and 255, where 0 is 0% and 255 is 100%.
-//                The adjustDutyCycle method is used to adjust the duty cycle
-//                based on a proportional control algorithm.
 //==============================================================================
 void PWModulation::set_duty_cycle(uint8_t duty) {
     _duty_cycle = duty;      // Save the duty cycle for future adjustments
@@ -52,17 +48,37 @@ void PWModulation::set_duty_cycle(uint8_t duty) {
     if (_ocr16) *_ocr16 = duty;                  // Directly assign to 16-bit
 }
 
-void PWModulation::adjust_duty_cycle(int error) {    
-    // Calculate the adjustment needed
-    int adjustment = (int)(error * PROPORTIONAL_GAIN);
-    
-    // Calculate the new duty cycle with range (0-255)
-    int new_duty_cycle = _duty_cycle + adjustment;
-    if (new_duty_cycle > 255) new_duty_cycle = 255;
-    if (new_duty_cycle < 0) new_duty_cycle = 0;
-    
-    // Set the new duty cycle
-    set_duty_cycle((uint8_t)new_duty_cycle);
+//==============================================================================
+// Public Method: rampOutput
+// Description:   Ramp the PWM output up and down over a specified cycle time.
+//                If you pass a cycle time of 1000ms and a millis timer, the
+//                duty cycle will ramp up and down once every second.
+//==============================================================================
+void PWModulation::ramp_output(const uint16_t &cycle_time, Timer &timer) {
+    // Increment overflow counter based on timer overflows
+    _overflow_counter += timer.overflow_counter;
+
+    // Calculate the number of timer overflows required for a single step of duty cycle change
+    uint16_t steps = cycle_time / (UINT8_MAX * 2); // 255 * 2 overflows per cycle
+
+    // Update duty cycle every 'steps' overflows
+    if (_overflow_counter >= steps) {
+        if (_ramp_up) {
+            _duty_cycle++;
+            if (_duty_cycle >= 255) {
+                _duty_cycle = 255;
+                _ramp_up = false;
+            }
+        } else {
+            _duty_cycle--;
+            if (_duty_cycle <= 0) {
+                _duty_cycle = 0;
+                _ramp_up = true;
+            }
+        }
+        set_duty_cycle(_duty_cycle); // Set the current duty cycle
+        _overflow_counter = 0;        // Reset the overflow counter
+    }
 }
 
 //==============================================================================
