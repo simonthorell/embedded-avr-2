@@ -59,6 +59,8 @@ void Serial::uart_init(const uint32_t& baud_rate, const uint8_t& data_bits){
         sprintf(buffer, "UART Initialized with %lu baud rate and %u-bits\r\n", baud_rate, data_bits);
         uart_put_str(buffer);
 
+        ENABLE_UART_RX_INTERRUPT(); // Enable UART receive interrupt
+
     } else {
         initialized = false;
     }

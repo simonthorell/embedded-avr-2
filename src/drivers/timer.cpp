@@ -13,7 +13,7 @@ Timer* Timer::timer_ptr = nullptr;
 //              (MICROS, MILLIS) and initializes the timer accordingly.
 //=============================================================================
 Timer::Timer(TimerNum num, TimeUnit unit) 
-  : _num(num), _unit(unit), overflow_counter(0) {
+  : overflow_counter(0), _num(num), _unit(unit) {
     timer_ptr = this;
 }
 
@@ -77,7 +77,7 @@ void Timer::set_prescaler(uint32_t interval, Serial &serial) {
 
     // Inform user about the set pre-scaler and OCR value
     char message[50];
-    snprintf(message, sizeof(message), "Timer %d configured (Prescaler: %d, OCR: %u)\r\n", _num, prescaler, ocr_value);
+    snprintf(message, sizeof(message), "Timer %d configured (Prescaler: %d, OCR: %lu)\r\n", _num, prescaler, ocr_value);
     serial.uart_put_str(message);
 
     // Set the register values based on the set timer number

@@ -18,4 +18,4 @@ public:
     uint16_t cmd_val2;
 };
 
-#endif // CMD_PARSER_Hd
+#endif // CMD_PARSER_H

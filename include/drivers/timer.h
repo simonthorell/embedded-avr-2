@@ -55,8 +55,8 @@ public:
     void start();
     void stop();
     void reset();
-    volatile unsigned long overflow_counter;
     volatile bool timer_overflowed;
+    volatile unsigned long overflow_counter;
     static Timer* timer_ptr; // Pointer to the timer instance
 
 private:

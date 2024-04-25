@@ -3,6 +3,10 @@
 
 #include <avr/io.h>
 
+#ifndef F_CPU
+#define F_CPU 16000000UL // Define MCU clock speed if not defined
+#endif
+
 // Enable UART with specific baud rate and data bits
 #define ENABLE_UART(baudRate, dataBits) do { \
     SET_UART_BAUD_RATE(baudRate); \

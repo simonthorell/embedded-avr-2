@@ -3,47 +3,23 @@
 
 #include <avr/io.h>
 
-//=============================================================================
-// Macros for configuring GPIO pins
-//*****************************************************************************
-// TODO: Maybe remove some abstraction and use direct register manipulation
-//       In the methods of the GPIO class instead..? // STH 2024-04-22
-//=============================================================================
-enum PinType {
-    DIGITAL_PIN,
-    ANALOG_PIN
-};
-
-// Macros for configuring pins
-#define ENABLE_INPUT(pinType, pin) \
-    (*(DDR_FOR_PIN(pinType, pin))  &= ~(1 << BIT_FOR_PIN(pinType, pin)))
-#define ENABLE_OUTPUT(pinType, pin) \
-    (*(DDR_FOR_PIN(pinType, pin))  |=  (1 << BIT_FOR_PIN(pinType, pin)))
-#define ENABLE_PULLUP(pinType, pin) \
-    (*(PORT_FOR_PIN(pinType, pin)) |=  (1 << BIT_FOR_PIN(pinType, pin)))
-
-#define DISABLE_INPUT(pinType, pin) \
-    (*(DDR_FOR_PIN(pinType, pin))  |=  (1 << BIT_FOR_PIN(pinType, pin)))
-#define DISABLE_OUTPUT(pinType, pin) \
-    (*(DDR_FOR_PIN(pinType, pin))  &= ~(1 << BIT_FOR_PIN(pinType, pin)))
-#define DISABLE_PULLUP(pinType, pin) \
-    (*(PORT_FOR_PIN(pinType, pin)) &= ~(1 << BIT_FOR_PIN(pinType, pin)))
+enum PinType { DIGITAL_PIN, ANALOG_PIN };
 
 // Macro to obtain a pointer to the appropriate DDR register for a given pin
 #define DDR_FOR_PIN(pinType, pin) \
     ((pinType) == DIGITAL_PIN ? \
-        ((pin) >= 0 && (pin) <= 7 ? &DDRD : \
+        ((pin) <= 7 ? &DDRD : \
          (pin) >= 8 && (pin) <= 13 ? &DDRB : nullptr) : \
      (pinType) == ANALOG_PIN ? \
-        ((pin) >= 0 && (pin) <= 5 ? &DDRC : nullptr) : nullptr)
+        ((pin) <= 5 ? &DDRC : nullptr) : nullptr)
 
 // Macro to obtain a pointer to the appropriate PORT register for a given pin
 #define PORT_FOR_PIN(pinType, pin) \
     ((pinType) == DIGITAL_PIN ? \
-        ((pin) >= 0 && (pin) <= 7 ? &PORTD : \
+        ((pin) <= 7 ? &PORTD : \
          (pin) >= 8 && (pin) <= 13 ? &PORTB : nullptr) : \
      (pinType) == ANALOG_PIN ? \
-        ((pin) >= 0 && (pin) <= 5 ? &PORTC : nullptr) : nullptr)
+        ((pin) <= 5 ? &PORTC : nullptr) : nullptr)
 
 // Macro to determine the correct bit within a register for a given pin
 #define BIT_FOR_PIN(pinType, pin) \
@@ -69,17 +45,6 @@ enum PinType {
          (pin) == 3 ?  PORTC3 : \
          (pin) == 4 ?  PORTC4 : \
          (pin) == 5 ?  PORTC5 : 0) : 0)
-
-#define SET_HIGH(pinType, pin) \
-    (*(PORT_FOR_PIN(pinType, pin)) |=  (1 << BIT_FOR_PIN(pinType, pin)))
-#define SET_LOW(pinType, pin) \
-    (*(PORT_FOR_PIN(pinType, pin)) &= ~(1 << BIT_FOR_PIN(pinType, pin)))
-#define TOGGLE(pinType, pin) \
-    (*(PORT_FOR_PIN(pinType, pin)) ^=  (1 << BIT_FOR_PIN(pinType, pin)))
-#define IS_HIGH(pinType, pin) \
-    (*(PORT_FOR_PIN(pinType, pin)) & (1 << BIT_FOR_PIN(pinType, pin)))
-#define IS_LOW(pinType, pin) \
-    !(*(PORT_FOR_PIN(pinType, pin)) & (1 << BIT_FOR_PIN(pinType, pin)))
 
 //=============================================================================
 // Class definition
