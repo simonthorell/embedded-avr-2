@@ -2,7 +2,6 @@
 // Serial Driver Class Implementation
 //======================================================================
 #include "drivers/serial.h"
-#include "drivers/config.h"
 #include <stdio.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>

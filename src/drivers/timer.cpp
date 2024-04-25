@@ -2,8 +2,7 @@
 // Timer Driver Class Implementation
 //=============================================================================
 #include "drivers/timer.h"
-
-#include "stdio.h"
+#include "stdio.h" // For snprintf
 
 // Static pointer initialization
 Timer* Timer::timer_ptr = nullptr;
@@ -19,7 +18,7 @@ Timer::Timer(TimerNum num, TimeUnit unit)
 }
 
 //=============================================================================
-// Timer Public Methods: start, stop, reset
+// Timer Public Methods: init, set_prescaler, start, stop, reset
 //=============================================================================
 void Timer::init(const uint32_t &interval, Serial &serial) {
     // Disable the timer before setting the mode and prescaler
@@ -38,37 +37,13 @@ void Timer::init(const uint32_t &interval, Serial &serial) {
             TCCR2A = (1 << WGM21);  // CTC Mode
             break;
     }
-    set_prescaler(interval, serial);  // Set prescaler based on interval
-    start();                          // Start the timer
-}
 
-void Timer::start() {
-     // Enable Timer Compare Match A interrupt
-    switch (_num) {
-        case TIMER_0: TIMSK0 |= (1 << OCIE0A); break;
-        case TIMER_1: TIMSK1 |= (1 << OCIE1A); break;
-        case TIMER_2: TIMSK2 |= (1 << OCIE2A); break;
-    }
-}
-
-void Timer::stop() {
-    // Disable Timer Compare Match A interrupt
-    switch (_num) {
-        case TIMER_0: TIMSK0 &= ~(1 << OCIE0A); break;
-        case TIMER_1: TIMSK1 &= ~(1 << OCIE1A); break;
-        case TIMER_2: TIMSK2 &= ~(1 << OCIE2A); break;
-    }
-}
-
-// Reset the overflow counter (Reset the timer)
-void Timer::reset() {
-    cli(); // Disable interrupts temporarily
-    overflow_counter = 0;
-    sei(); // Re-Enable interrups
+    set_prescaler(interval, serial);
 }
 
 void Timer::set_prescaler(uint32_t interval, Serial &serial) {
-    cli(); // Disable interrupts temporarily
+    stop(); // Stop the timer before setting the prescaler
+    cli();  // Disable interrupts temporarily
 
     // Prescaler settings for ms and us (threshold)
     static const PrescalerSetting ms_settings[] = {
@@ -79,22 +54,6 @@ void Timer::set_prescaler(uint32_t interval, Serial &serial) {
     static const PrescalerSetting us_settings[] = {
         {3000, 1}, {30000, 8}, {250000, 64}, {1000000, 256}, {UINT32_MAX, 1024}
     };
-
-    // static const PrescalerSetting ms_settings_8bit[] = {
-    ////   {1, 1},             // Up to ~16 microseconds
-    ////   {2, 8},             // Up to ~128 microseconds
-    //     {20, 64},           // Up to ~1.024 milliseconds
-    //     {50, 256},          // Up to ~4.096 milliseconds
-    //     {UINT32_MAX, 1024}  // Up to ~16.384 milliseconds
-    // };
-
-    // static const PrescalerSetting us_settings_8bit[] = {
-    //     {30, 1},            // Up to ~16 microseconds
-    //     {200, 8},           // Up to ~128 microseconds
-    //     {1500, 64},         // Up to ~1.024 milliseconds
-    //     {5000, 256},        // Up to ~4.096 milliseconds
-    //     {UINT32_MAX, 1024}  // Up to ~16.384 milliseconds
-    // };
 
     // Choose the correct settings based on the unit
     const PrescalerSetting* settings = (_unit == MICROS) ? 
@@ -137,7 +96,33 @@ void Timer::set_prescaler(uint32_t interval, Serial &serial) {
             break;
     }
 
-    sei(); // Re-enable interrupts
+    sei();   // Re-enable interrupts
+    start(); // Start the timer again
+}
+
+void Timer::start() {
+     // Enable Timer Compare Match A interrupt
+    switch (_num) {
+        case TIMER_0: TIMSK0 |= (1 << OCIE0A); break;
+        case TIMER_1: TIMSK1 |= (1 << OCIE1A); break;
+        case TIMER_2: TIMSK2 |= (1 << OCIE2A); break;
+    }
+}
+
+void Timer::stop() {
+    // Disable Timer Compare Match A interrupt
+    switch (_num) {
+        case TIMER_0: TIMSK0 &= ~(1 << OCIE0A); break;
+        case TIMER_1: TIMSK1 &= ~(1 << OCIE1A); break;
+        case TIMER_2: TIMSK2 &= ~(1 << OCIE2A); break;
+    }
+}
+
+// Reset the overflow counter (Reset the timer)
+void Timer::reset() {
+    cli(); // Disable interrupts temporarily
+    overflow_counter = 0;
+    sei(); // Re-Enable interrups
 }
 
 //=============================================================================
@@ -152,15 +137,18 @@ void Timer::set_prescaler(uint32_t interval, Serial &serial) {
 //=============================================================================
 ISR(TIMER0_COMPA_vect) {
     Timer::timer_ptr->overflow_counter++;
+    Timer::timer_ptr->timer_overflowed = true;
     // PORTD ^= (1 << PORTD3); // Debug Code: Toogle pin D3 on/off
 }
 
 ISR(TIMER1_COMPA_vect) {
     Timer::timer_ptr->overflow_counter++;
-    PORTD ^= (1 << PORTD3); // Debug Code: Toogle pin D3 on/off
+    Timer::timer_ptr->timer_overflowed = true;
+    // PORTD ^= (1 << PORTD3); // Debug Code: Toogle pin D3 on/off
 }
 
 ISR(TIMER2_COMPA_vect) {
     Timer::timer_ptr->overflow_counter++;
+    Timer::timer_ptr->timer_overflowed = true;
     // PORTD ^= (1 << PORTD3); // Debug Code: Toogle pin D3 on/off
 }

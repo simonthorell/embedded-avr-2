@@ -28,7 +28,7 @@ PWModulation::PWModulation(const uint8_t &pwm_pin) : _pin(pwm_pin) {
 bool PWModulation::init() {
     if (_valid_pwm_pin(_pin)) {
         SETUP_PWM_FOR_PIN(_pin);   // Register bits defined in pwm.h
-        set_duty_cycle(255);       // Set initial duty cycle to max (0-255)
+        set_duty_cycle(UINT8_MAX); // Set initial duty cycle to max (0-255)
         return true;               // Valid pin
     } else {
         return false;              // Invalid pin
@@ -65,8 +65,8 @@ void PWModulation::ramp_output(const uint16_t &cycle_time, Timer &timer) {
     if (_overflow_counter >= steps) {
         if (_ramp_up) {
             _duty_cycle++;
-            if (_duty_cycle >= 255) {
-                _duty_cycle = 255;
+            if (_duty_cycle >= UINT8_MAX) {
+                _duty_cycle = UINT8_MAX;
                 _ramp_up = false;
             }
         } else {
