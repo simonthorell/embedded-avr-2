@@ -3,6 +3,8 @@
 //=============================================================================
 #include "drivers/timer.h"
 
+#include "stdio.h"
+
 // Static pointer initialization
 Timer* Timer::timer_ptr = nullptr;
 
@@ -19,18 +21,29 @@ Timer::Timer(TimerNum num, TimeUnit unit)
 //=============================================================================
 // Timer Public Methods: start, stop, reset
 //=============================================================================
-void Timer::init() {
+void Timer::init(const uint32_t &interval, Serial &serial) {
+    // Disable the timer before setting the mode and prescaler
     switch (_num) {
-        case TIMER_0: _init_timer_0(); break;
-        case TIMER_1: _init_timer_1(); break;
-        case TIMER_2: _init_timer_2(); break;
+        case TIMER_0: 
+            TCCR0B = 0x00;
+            TCCR0A = (1 << WGM01);  // CTC Mode
+            break;
+        case TIMER_1: 
+            TCCR1A = 0x00;
+            TCCR1B = 0x00;
+            TCCR1B = (1 << WGM12);  // CTC Mode
+            break;
+        case TIMER_2: 
+            TCCR2B = 0x00;
+            TCCR2A = (1 << WGM21);  // CTC Mode
+            break;
     }
-    
-    start(); // Start the timer
+    set_prescaler(interval, serial);  // Set prescaler based on interval
+    start();                          // Start the timer
 }
 
- // Enable Timer Compare Match A interrupt
 void Timer::start() {
+     // Enable Timer Compare Match A interrupt
     switch (_num) {
         case TIMER_0: TIMSK0 |= (1 << OCIE0A); break;
         case TIMER_1: TIMSK1 |= (1 << OCIE1A); break;
@@ -38,8 +51,8 @@ void Timer::start() {
     }
 }
 
-// Disable Timer Compare Match A interrupt
 void Timer::stop() {
+    // Disable Timer Compare Match A interrupt
     switch (_num) {
         case TIMER_0: TIMSK0 &= ~(1 << OCIE0A); break;
         case TIMER_1: TIMSK1 &= ~(1 << OCIE1A); break;
@@ -54,16 +67,34 @@ void Timer::reset() {
     sei(); // Re-Enable interrups
 }
 
-void Timer::set_prescaler(uint32_t interval) {
+void Timer::set_prescaler(uint32_t interval, Serial &serial) {
+    cli(); // Disable interrupts temporarily
+
     // Prescaler settings for ms and us (threshold)
     static const PrescalerSetting ms_settings[] = {
-        {3, 1}, {30, 8}, {250, 64}, {500, 128}, {1000, 256}, 
-        {UINT32_MAX, 1024}
+        // Prescaler settings for milliseconds
+        // {3, 1}, // No need for prescaler 1 resolution for millis
+        {30, 8}, {250, 64}, {1000, 256}, {UINT32_MAX, 1024}
     };
     static const PrescalerSetting us_settings[] = {
-        {3000, 1}, {30000, 8}, {250000, 64}, {500000, 128}, 
-        {1000000, 256}, {UINT32_MAX, 1024}
+        {3000, 1}, {30000, 8}, {250000, 64}, {1000000, 256}, {UINT32_MAX, 1024}
     };
+
+    // static const PrescalerSetting ms_settings_8bit[] = {
+    ////   {1, 1},             // Up to ~16 microseconds
+    ////   {2, 8},             // Up to ~128 microseconds
+    //     {20, 64},           // Up to ~1.024 milliseconds
+    //     {50, 256},          // Up to ~4.096 milliseconds
+    //     {UINT32_MAX, 1024}  // Up to ~16.384 milliseconds
+    // };
+
+    // static const PrescalerSetting us_settings_8bit[] = {
+    //     {30, 1},            // Up to ~16 microseconds
+    //     {200, 8},           // Up to ~128 microseconds
+    //     {1500, 64},         // Up to ~1.024 milliseconds
+    //     {5000, 256},        // Up to ~4.096 milliseconds
+    //     {UINT32_MAX, 1024}  // Up to ~16.384 milliseconds
+    // };
 
     // Choose the correct settings based on the unit
     const PrescalerSetting* settings = (_unit == MICROS) ? 
@@ -82,17 +113,21 @@ void Timer::set_prescaler(uint32_t interval) {
         }
     }
 
-    // Calculate the OCR value based on the prescaler
-    uint32_t ocr_value = ((F_CPU / prescaler) * (interval /
-                     (_unit == MICROS ? US_PER_SEC : MS_PER_SEC))) - 1;
+    uint32_t ocr_value = ((F_CPU / prescaler) * (interval / 
+                           (_unit == MICROS ? US_PER_SEC : MS_PER_SEC)) - 1);
+
+    // Inform user about the set pre-scaler and OCR value
+    char message[50];
+    snprintf(message, sizeof(message), "Timer %d configured (Prescaler: %d, OCR: %u)\r\n", _num, prescaler, ocr_value);
+    serial.uart_put_str(message);
 
     // Set the register values based on the set timer number
     switch (_num) {
         case TIMER_0: 
-            OCR0A = ocr_value; 
+            OCR0A = ocr_value;
             TCCR0B |= TIMER0_PS_BITS(prescaler);
             break;
-        case TIMER_1: 
+        case TIMER_1:
             OCR1A = ocr_value;
             TCCR1B |= TIMER1_PS_BITS(prescaler);
             break;
@@ -101,63 +136,8 @@ void Timer::set_prescaler(uint32_t interval) {
             TCCR2B |= TIMER2_PS_BITS(prescaler);
             break;
     }
-}
 
-//=============================================================================
-// Timer Private Methods: _init_timer_0, _init_timer_1, _init_timer_2
-//=============================================================================
-void Timer::_init_timer_0() {
-    TCCR0A = (1 << WGM01);  // CTC Mode
-    TCCR0B = 0x00;          // Stop the timer
-
-    if (_unit == MICROS) {
-        // Set compare match register for ~1us @16MHz
-        OCR0A = _ocr_micros;
-        TCCR0B |= ((1 << CS00));  // No prescaling
-    } else {
-        // Set compare match register for ~1ms @16MHz
-        OCR0A = _ocr_millis;
-        TCCR0B |= ((1 << CS01) | (1 << CS00));  // Prescaler 64
-    }
-}
-
-void Timer::_init_timer_1() {
-    TCCR1A = 0x00;          // Stop the timer
-    TCCR1B = (1 << WGM12);  // CTC Mode
-
-    // Stop the timer
-    TCCR1B &= ~((1 << CS12) | (1 << CS11) | (1 << CS10));
-
-    if (_unit == MICROS) {
-        // Set compare match register for ~1us @16MHz
-        OCR1A = _ocr_micros;
-        TCCR1B |= (1 << CS10);  // No prescaling
-    } else {
-        // Set compare match register for ~1ms @16MHz
-        OCR1A = _ocr_millis;
-        TCCR1B |= (1 << CS10) | (1 << CS11);  // Prescaler 64
-    }
-}
-
-void Timer::_init_timer_2() {
-    TCCR2A = (1 << WGM21);  // CTC Mode
-    TCCR2B = 0x00;          // Stop the timer
-
-    if (_unit == MICROS) {
-        // Set compare match register for ~1us @16MHz
-        OCR2A = _ocr_micros;
-        TCCR2B |= (1 << CS20);  // No prescaling
-    } else if (_unit == MILLIS) {
-        // Set compare match register for ~1ms @16MHz
-        OCR2A = _ocr_millis;
-        TCCR2B |= (1 << CS22);  // Prescaler 64
-    } else {
-        // Overflow Timer
-        TCCR2A = 0;            // Stop Timer2A
-        TCCR2B = 0;            // Stop Timer2B
-        TCCR2B |= 0B00000111;  // Prescaler = 1024
-        TCNT2 = 5;             // Timer Preloading (256 - 5) = 251
-    }
+    sei(); // Re-enable interrupts
 }
 
 //=============================================================================
@@ -172,20 +152,15 @@ void Timer::_init_timer_2() {
 //=============================================================================
 ISR(TIMER0_COMPA_vect) {
     Timer::timer_ptr->overflow_counter++;
+    // PORTD ^= (1 << PORTD3); // Debug Code: Toogle pin D3 on/off
 }
 
 ISR(TIMER1_COMPA_vect) {
     Timer::timer_ptr->overflow_counter++;
+    PORTD ^= (1 << PORTD3); // Debug Code: Toogle pin D3 on/off
 }
 
 ISR(TIMER2_COMPA_vect) {
     Timer::timer_ptr->overflow_counter++;
+    // PORTD ^= (1 << PORTD3); // Debug Code: Toogle pin D3 on/off
 }
-
-//=============================================================================
-// Constexpr Definitions
-// Description: These definitions are used to calculate the OCR values
-//              for the timer based on the CPU frequency and prescaler.
-//=============================================================================
-static constexpr uint32_t _ocr_micros = ((F_CPU / US_PER_SEC / PRESCALER_US) - 1);
-static constexpr uint32_t _ocr_millis = ((F_CPU / MS_PER_SEC / PRESCALER_MS) - 1);
