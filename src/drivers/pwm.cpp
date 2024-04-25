@@ -22,17 +22,21 @@ PWModulation::PWModulation(const uint8_t &pwm_pin) : _pin(pwm_pin) {
 }
 
 //==============================================================================
-// Public Method: init
+// Public Method: init, reset
 // Description:   configure the PWM output pin and set the initial duty cycle
 //==============================================================================
 bool PWModulation::init() {
     if (_valid_pwm_pin(_pin)) {
         SETUP_PWM_FOR_PIN(_pin);   // Register bits defined in pwm.h
-        set_duty_cycle(UINT8_MAX); // Set initial duty cycle to max (0-255)
+        reset();                   // Set the initial duty cycle
         return true;               // Valid pin
     } else {
         return false;              // Invalid pin
     }
+}
+
+void PWModulation::reset() {
+    set_duty_cycle(UINT8_MAX);  // Set duty cycle to 8-bit max (255)
 }
 
 //==============================================================================

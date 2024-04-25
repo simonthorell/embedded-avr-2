@@ -19,7 +19,7 @@
     TCCR##ocr##B = (1 << cs)  | (1 << wgm1)  /* Setup prescaler and additional mode bits */
 
 #define SETUP_PWM_FOR_PIN(pin) \
-    if ((pin) == 3) { CONFIGURE_PWM(DDRD, PORTD3, 2, COM2B1, WGM20, WGM21, CS21); } \
+    if      ((pin) == 3)  { CONFIGURE_PWM(DDRD, PORTD3, 2, COM2B1, WGM20, WGM21, CS21); } \
     else if ((pin) == 5)  { CONFIGURE_PWM(DDRD, PORTD5, 0, COM0B1, WGM00, WGM01, CS01); } \
     else if ((pin) == 6)  { CONFIGURE_PWM(DDRD, PORTD6, 0, COM0A1, WGM00, WGM01, CS01); } \
     else if ((pin) == 9)  { CONFIGURE_PWM(DDRB, PORTB1, 1, COM1A1, WGM10, WGM11, CS11); } \
@@ -35,6 +35,7 @@ public:
     PWModulation(const uint8_t &pwmPin); // Constructor
 
     bool init();
+    void reset();
     void set_duty_cycle(uint8_t duty);
     void ramp_output(const uint16_t &cycle_time, Timer &timer);
 

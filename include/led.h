@@ -7,11 +7,17 @@
 #include "drivers/gpio.h"
 #include "drivers/timer.h"
 #include "drivers/adc.h"
+#include "drivers/pwm.h"
 #include "drivers/serial.h"
 
 class LED {
 public:
-    LED(uint8_t pin);  // Constructor that specifies the pin connected to the LED
+    enum PWM_MODE { PWM_OFF, PWM_ON };
+
+    // Constructor that specifies the pin connected to the LED
+    LED(uint8_t pin, bool enable_pwm);
+
+    // Public Methods
     void turn_on();
     void turn_off();
     void toggle();
@@ -20,13 +26,17 @@ public:
     void blink(const uint16_t &blink_time, const Timer &timer);
     void adc_blink(const Timer &timer, Serial &serial, const uint8_t &adc_ch, 
                    const uint16_t &max_interval);
+    void set_power(const uint16_t &cycle_time);
+    void ramp_brightness(const uint16_t &cycle_time, Timer &timer);
 
 private:
     GPIO _gpio;
-    ADConverter adc;
-    unsigned long _overflow_counter = 0;    // timer overflow counter
-    uint16_t _blink_interval = 200;
-    uint16_t _prev_blink_interval = 0;
+    ADConverter _adc;
+    PWModulation _pwm;
+
+    unsigned long _overflow_counter;
+    uint16_t _blink_interval;
+    uint16_t _prev_blink_interval;
 };
 
 #endif // LED_H

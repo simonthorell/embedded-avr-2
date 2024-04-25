@@ -5,10 +5,12 @@
 
 //======================================================================
 // LED Constructor
+// Description: If PWM is set to PWM_ON, the LED will be initialized
 //======================================================================
-LED::LED(uint8_t pin) : _gpio(DIGITAL_PIN, pin) {
+LED::LED(uint8_t pin, bool pwm) : _gpio(DIGITAL_PIN, pin), _pwm(pin) {
     // Set the pin as an output using the GPIO object
     _gpio.enable_output();
+    if (pwm) _pwm.init();
 }
 
 //======================================================================
@@ -54,9 +56,9 @@ void LED::adc_blink(const Timer &timer, Serial &serial,
                     const uint8_t &adc_ch, const uint16_t &max_interval) {
     
     _prev_blink_interval = _blink_interval;
-    uint16_t adc_reading = adc.read_channel(adc_ch);
+    uint16_t adc_reading = _adc.read_channel(adc_ch);
     uint16_t adc_voltage = adc_reading;
-    adc.convert_to_mv(adc_voltage);
+    _adc.convert_to_mv(adc_voltage);
     _blink_interval = adc_voltage / (MAX_INPUT_VOLTAGE / max_interval);
 
     if(_blink_interval == 0) {
@@ -77,4 +79,12 @@ void LED::adc_blink(const Timer &timer, Serial &serial,
             serial.uart_put_str(message);
         }
     }
+}
+
+void LED::set_power(const uint16_t &cycle_time) {
+    _pwm.set_duty_cycle(cycle_time);
+}
+
+void LED::ramp_brightness(const uint16_t &cycle_time, Timer &timer) {
+    _pwm.ramp_output(cycle_time, timer);
 }

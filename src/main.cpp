@@ -14,8 +14,6 @@
 #include <avr/interrupt.h>
 #include "drivers/serial.h"
 #include "drivers/timer.h"
-#include "drivers/adc.h"
-#include "drivers/pwm.h"
 #include "cmd_parser.h"
 #include "led.h"
 
@@ -26,32 +24,25 @@
 #define POT_ADC_CHANNEL    0    // Set Potentiometer ADC input channel
 #define LED_BLINK_INTERVAL 200  // Fixed LED blink interval (ms)
 #define MAX_ADC_INTERVAL   100  // Max ADC blink time (ms)
-#define LED_RAMP_TIME      1000 // Default LED ramp interval time (ms)
 
 // Declare function prototypes
-void loop(Serial &serial, PWModulation &led_pwm_d11, LED &led_d3, 
-          Timer &timer_1, CmdParser &cmd_parser);
+void loop(Serial &serial, LED &led_d3, Timer &timer_1, CMDParser &cmd_parser);
 
 //=============================================================================
 // Main function
 //=============================================================================
 int main(void) {
     Serial serial;
-    serial.uart_init(BAUD_RATE, DATA_BITS);
-
-    LED led_d3(3);
-
-    PWModulation led_pwm_d11(11); // PWM digital pin 11 (using timer 2)
-    led_pwm_d11.init();
-
+    LED led_d3(3, LED::PWM_ON);
     Timer timer_1(Timer::TIMER_1, Timer::MILLIS);
-    timer_1.init(LED_BLINK_INTERVAL, serial);
+    CMDParser cmd_parser;
 
-    CmdParser cmd_parser;
+    serial.uart_init(BAUD_RATE, DATA_BITS);
+    timer_1.init(LED_BLINK_INTERVAL, serial);
 
     sei(); // Enable Interupts globally
 
-    loop(serial, led_pwm_d11, led_d3, timer_1, cmd_parser); // Run Main Loop (infinite)
+    loop(serial, led_d3, timer_1, cmd_parser);
     
     return 0;
 }
@@ -59,50 +50,48 @@ int main(void) {
 //=============================================================================
 // Main loop
 //=============================================================================
-void loop(Serial &serial, PWModulation &led_pwm_d11, LED &led_d3, 
-          Timer &timer_1, CmdParser &cmd_parser) {
-    
+void loop(Serial &serial, LED &led_d3, Timer &timer_1, CMDParser &cmd_parser) {
     char rec_cmd[BUFFER_SIZE]; // serial command buffer
-    bool new_cmd = false;      // new command flag
+    bool new_cmd = false;      // for functions that should only run once
 
     while (true) {
-        // Process UART commands if a complete string is ready
         if (uart_command_ready) {
             serial.uart_rec_str(rec_cmd, BUFFER_SIZE);
             cmd_parser.parse_cmd(rec_cmd);
-            if (cmd_parser.command != CmdParser::NO_CMD) {
+            if (cmd_parser.command) {
                 new_cmd = true;
-                serial.uart_put_str("Executed Command: ");
+                serial.uart_put_str("Executing: ");
                 serial.uart_put_str(rec_cmd);
                 serial.uart_put_str("\r\n");
             } else {
                 serial.uart_put_str("Invalid Command!\r\n");
             }
-            uart_command_ready = false;    // Reset command ready flag
+            uart_command_ready = false; // Reset command ready flag
         }
 
-        // Check cmd variable and execute set command
         switch(cmd_parser.command) {
-            case CmdParser::NO_CMD: 
+            case CMDParser::NO_CMD:
+                led_d3.turn_off();
                 break;
-            case CmdParser::LED_BLINK:
+            case CMDParser::LED_BLINK:
                 if (new_cmd)
                     timer_1.set_prescaler(LED_BLINK_INTERVAL, serial);                
-                led_d3.blink(1, timer_1); // Blink LED every(1) timer_1 interupt
+                led_d3.blink(1, timer_1); // Blink LED every(1) interupt
                 break;
-            case CmdParser::LED_ADC:
-                if (new_cmd)
-                    timer_1.set_prescaler(1, serial); // Millis timer
+            case CMDParser::LED_ADC:
+                if (new_cmd) timer_1.set_prescaler(1, serial);
                 led_d3.adc_blink(timer_1, serial, POT_ADC_CHANNEL, MAX_ADC_INTERVAL);
                 break;
-            case CmdParser::LED_PWR:
-                // Implement LED power frequency control
+            case CMDParser::LED_PWR:
+                led_d3.set_power(cmd_parser.cmd_val1);
+                led_d3.blink(cmd_parser.cmd_val2, timer_1);
                 break;
-            case CmdParser::BUTTON:
-                // Implement button control
+            case CMDParser::BUTTON:
+                // TODO: Implement button class
                 break;
-            case CmdParser::LED_RAMP:
-                led_pwm_d11.ramp_output(cmd_parser.cmd_val1, timer_1);
+            case CMDParser::LED_RAMP:
+                if (new_cmd) timer_1.set_prescaler(1, serial);
+                led_d3.ramp_brightness(cmd_parser.cmd_val1, timer_1);
                 break;
         }
 

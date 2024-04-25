@@ -2,14 +2,14 @@
 #define CMD_PARSER_H
 
 #include <avr/io.h>
-#include <string.h>
-#include <stdio.h> // sscanf
+#include <string.h> // strncmp
+#include <stdio.h>  // sscanf
 
-class CmdParser {
+class CMDParser {
 public:
     enum Command { NO_CMD, LED_BLINK, LED_ADC, LED_PWR, BUTTON, LED_RAMP };
 
-    CmdParser();
+    CMDParser();
     void parse_cmd(const char* cmd);
 
     uint8_t  command = LED_BLINK;

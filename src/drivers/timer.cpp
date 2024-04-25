@@ -137,18 +137,18 @@ void Timer::reset() {
 //=============================================================================
 ISR(TIMER0_COMPA_vect) {
     Timer::timer_ptr->overflow_counter++;
-    Timer::timer_ptr->timer_overflowed = true;
+    // Timer::timer_ptr->timer_overflowed = true;
     // PORTD ^= (1 << PORTD3); // Debug Code: Toogle pin D3 on/off
 }
 
 ISR(TIMER1_COMPA_vect) {
     Timer::timer_ptr->overflow_counter++;
-    Timer::timer_ptr->timer_overflowed = true;
+    // Timer::timer_ptr->timer_overflowed = true;
     // PORTD ^= (1 << PORTD3); // Debug Code: Toogle pin D3 on/off
 }
 
 ISR(TIMER2_COMPA_vect) {
     Timer::timer_ptr->overflow_counter++;
-    Timer::timer_ptr->timer_overflowed = true;
+    // Timer::timer_ptr->timer_overflowed = true;
     // PORTD ^= (1 << PORTD3); // Debug Code: Toogle pin D3 on/off
 }
