@@ -8,22 +8,30 @@
 #include "drivers/serial.h"
 
 class Button {
-    public:
-        Button(uint8_t pin);
+public:
+    // Constructor
+    Button(uint8_t pin);
 
-        bool is_pressed();
+    // Public Methods
+    void init();
+    bool is_pressed();
+    void count_presses();
+    void debounce_presses(uint16_t interval, uint16_t debounce_limit, 
+                          Timer &timer, Serial &serial);
 
-        void count_presses();
-        void print_presses(uint16_t interval, Timer &timer, Serial &serial);
+private:
+    // Private Members
+    GPIO _gpio;
+    uint8_t _pin;
+    uint32_t _debounce_counter;
+    volatile uint32_t _button_presses;
 
-        static Button* instance;
-        volatile uint32_t _button_presses;
-
-    private:
-        GPIO _gpio;
-        uint32_t _prev_print_time;
-        uint8_t _pin;
+    // Private Methods
+    void handle_press();
+    void print_presses(Serial &serial);
+    
+    // Compile time validation
+    static constexpr bool _valid_btn_pin(uint8_t pin);
 };
-
 
 #endif // BUTTON_H
