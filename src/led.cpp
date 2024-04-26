@@ -10,7 +10,10 @@
 LED::LED(uint8_t pin, bool pwm) : _gpio(DIGITAL_PIN, pin), _pwm(pin) {
     // Set the pin as an output using the GPIO object
     _gpio.enable_output();
-    if (pwm) _pwm.init();
+    if (pwm) {
+        _pwm_enabled = true;
+        _pwm.init();
+    }
 }
 
 //======================================================================
@@ -46,8 +49,19 @@ bool LED::is_off() {
 void LED::blink(const uint16_t &blink_interval, const Timer &timer) {
     _overflow_counter += timer.overflow_counter;
 
-    if (_overflow_counter >= blink_interval) {
-        toggle();
+    if ((_overflow_counter >= blink_interval)) {
+
+        if (_pwm_enabled) {
+            if (_pwm._duty_cycle == 0) {
+                _pwm.set_duty_cycle(_pwm_power);                
+            } else {
+                _pwm_power = _pwm._duty_cycle;
+                _pwm.set_duty_cycle(0);
+            }
+        } else {
+            toggle();
+        }
+        
         _overflow_counter = 0; // Reset LED counter
     }
 }

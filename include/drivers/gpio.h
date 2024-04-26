@@ -54,6 +54,7 @@ public:
     GPIO(PinType pin_type, uint8_t pin);  // Constructor
     void enable_output();
     void enable_input();
+    void enable_pullup();
     void set_high();
     void set_low();
     void toggle();

@@ -48,6 +48,10 @@ void GPIO::enable_input() {
     ENABLE_INPUT(_pin_type, _pin);
 }
 
+void GPIO::enable_pullup() {
+    ENABLE_PULLUP(_pin_type, _pin);
+}
+
 void GPIO::set_high() {
     SET_HIGH(_pin_type, _pin);
 }

@@ -25,7 +25,7 @@ void loop(Serial &serial, LED &led_d3, Button &btn_d5, Timer &tim_1, CMD &cmd);
 //=============================================================================
 int main(void) {
     Serial serial;
-    LED    led_d3(3, LED::PWM_OFF);
+    LED    led_d3(3, LED::PWM_ON);
     Button btn_d5(5);
     Timer  tim_1(Timer::T1, Timer::MS); 
     CMD    cmd;
@@ -56,31 +56,40 @@ void loop(Serial &serial, LED &led_d3, Button &btn_d5, Timer &tim_1, CMD &cmd) {
                 serial.uart_put_str("Executing: ");
                 serial.uart_put_str(rec_cmd);
                 serial.uart_put_str("\r\n");
+                // char buffer[128];
+                // sprintf(buffer, "CMD: %d, VAL1: %d, VAL2: %d\r\n", cmd.cmd, cmd.cmd_val1, cmd.cmd_val2);
+                // serial.uart_put_str(buffer);
             } else {
                 serial.uart_put_str("Invalid Command!\r\n");
             }
             uart_command_ready = false; // Reset command ready flag
         }
 
+        // tim_1.init(LED_BLINK_INTV, serial);
+
         switch(cmd.cmd) {
             case CMD::CMD_NONE: break;
             case CMD::LED_BLINK:
-                if (new_cmd) tim_1.set_prescaler(LED_BLINK_INTV, serial);                
-                led_d3.blink(1, tim_1); // Blink LED every(1) interupt
+                // Setup pre-scaler for timer 1
+                if (new_cmd) tim_1.init(LED_BLINK_INTV, serial);
+                // Blink LED every(1) interupt (3 would blink every 3rd interupt f.e.)
+                led_d3.blink(1, tim_1);
                 break;
             case CMD::LED_ADC:
-                if (new_cmd) tim_1.set_prescaler(1, serial);
+                if (new_cmd) tim_1.init(1, serial);
                 led_d3.adc_blink(tim_1, serial, POT_ADC_CH, MAX_ADC_INTV);
                 break;
             case CMD::LED_PWR:
+                if (new_cmd) tim_1.init(cmd.cmd_val2, serial);
                 led_d3.set_power(cmd.cmd_val1);
-                led_d3.blink(cmd.cmd_val2, tim_1);
+                led_d3.blink(1, tim_1); // Blink every interupt
+                led_d3.adc_blink(tim_1, serial, POT_ADC_CH, MAX_ADC_INTV);
                 break;
             case CMD::BTN:
                 btn_d5.is_pressed();
                 break;
             case CMD::LED_RAMP:
-                if (new_cmd) tim_1.set_prescaler(1, serial);
+                if (new_cmd) tim_1.init(1, serial);
                 led_d3.ramp_brightness(cmd.cmd_val1, tim_1);
                 break;
         }

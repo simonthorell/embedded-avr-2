@@ -15,8 +15,8 @@
 
 #define CONFIGURE_PWM(ddr, port, ocr, com, wgm0, wgm1, cs) \
     ddr |= (1 << port),                      /* Set pin as output */ \
-    TCCR##ocr##A = (1 << com) | (1 << wgm0), /* Setup PWM mode */ \
-    TCCR##ocr##B = (1 << cs)  | (1 << wgm1)  /* Setup prescaler and additional mode bits */
+    TCCR##ocr##A |= (1 << com) | (1 << wgm0), /* Setup PWM mode */ \
+    TCCR##ocr##B |= (1 << cs)  | (1 << wgm1)  /* Setup prescaler and additional mode bits */
 
 #define SETUP_PWM_FOR_PIN(pin) \
     if      ((pin) == 3)  { CONFIGURE_PWM(DDRD, PORTD3, 2, COM2B1, WGM20, WGM21, CS21); } \
@@ -38,12 +38,13 @@ public:
     void reset();
     void set_duty_cycle(uint8_t duty);
     void ramp_output(const uint16_t &cycle_time, Timer &timer);
+    uint8_t _duty_cycle;
 
 private:
     uint8_t _pin;
     volatile uint16_t* _ocr16; // 16-bit output compare register (timer 1)
     volatile uint8_t* _ocr8;   // 8-bit output compare register (timer 0, 2)
-    uint8_t _duty_cycle;
+    // uint8_t _duty_cycle;
 
     // Variables for ramp method
     unsigned long _overflow_counter; 

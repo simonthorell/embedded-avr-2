@@ -34,6 +34,8 @@ private:
     ADConverter _adc;
     PWModulation _pwm;
 
+    bool _pwm_enabled;
+    uint8_t _pwm_power;
     unsigned long _overflow_counter;
     uint16_t _blink_interval;
     uint16_t _prev_blink_interval;
