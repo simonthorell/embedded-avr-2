@@ -1,11 +1,38 @@
-
-
 //=============================================================================
 // Timer Driver Class Implementation
 //=============================================================================
 #include "drivers/timer.h"
-#include <util/atomic.h>
-#include <stdio.h> // For sprintf 
+
+// Macros for setting the prescaler bits based on the prescaler value
+#define F_CPU        16000000UL  // Clock frequency (TODO: Define globally...)
+#define US_PER_SEC   1000000UL   // us per second
+#define MS_PER_SEC   1000.0      // ms per second
+
+#define TIMER0_PS_BITS(prescaler) \
+    ((prescaler) == 1 ?     (1 << CS00) : \
+    (prescaler)  == 8 ?     (1 << CS01) : \
+    (prescaler)  == 64 ?   ((1 << CS01) | (1 << CS00)) : \
+    (prescaler)  == 256 ?   (1 << CS02) : \
+    (prescaler)  == 1024 ? ((1 << CS02) | (1 << CS00)) : \
+    0)
+
+#define TIMER1_PS_BITS(prescaler) \
+    ((prescaler) == 1 ?     (1 << CS10) : \
+    (prescaler)  == 8 ?     (1 << CS11) : \
+    (prescaler)  == 64 ?   ((1 << CS11) | (1 << CS10)) : \
+    (prescaler)  == 256 ?   (1 << CS12) : \
+    (prescaler)  == 1024 ? ((1 << CS12) | (1 << CS10)) : \
+    0)
+
+#define TIMER2_PS_BITS(prescaler) \
+    ((prescaler) == 1 ?     (1 << CS20) : \
+    (prescaler)  == 8 ?     (1 << CS21) : \
+    (prescaler)  == 32 ?   ((1 << CS21) | (1 << CS20)) : \
+    (prescaler)  == 64 ?    (1 << CS22) : \
+    (prescaler)  == 128 ?  ((1 << CS22) | (1 << CS20)) : \
+    (prescaler)  == 256 ?  ((1 << CS22) | (1 << CS21)) : \
+    (prescaler)  == 1024 ? ((1 << CS22) | (1 << CS21) | (1 << CS20)) : \
+    0)
 
 // Static pointer initialization
 Timer* Timer::instance = nullptr;
@@ -46,7 +73,10 @@ void Timer::init(const uint32_t &interval, Serial &serial) {
 void Timer::set_prescaler(uint32_t interval, Serial &serial) {
     stop(); // Stop the timer before setting the prescaler
     cli();  // Disable interrupts temporarily
-    TimerConfig config = _clear_tccr(); // Clear & store TCCR
+    TimerConfig config = _clear_tccr(); // Clear & store TCCR (PWM settings f.e.)
+
+    /* TODO: Add the 8-bit timer settings... */
+    /* TODO: How to solve this method nicer/cleaner? */
 
     // Prescaler settings for ms and us (threshold)
     static const PrescalerSetting ms_settings[] = {
@@ -79,7 +109,7 @@ void Timer::set_prescaler(uint32_t interval, Serial &serial) {
 
     // Inform user about the set pre-scaler and OCR value
     char message[64];
-        snprintf(
+    snprintf(
         message, sizeof(message),
         "Timer %d configured (Prescaler: %d, OCR: %lu)\r\n",
         _num, prescaler, ocr_value
@@ -102,9 +132,9 @@ void Timer::set_prescaler(uint32_t interval, Serial &serial) {
             break;
     }
 
-    _set_tccr(config); // Revert TCCR (WGM) settings
-    sei();            // Re-enable interrupts
-    start();          // Start the timer again
+    _set_tccr(config);  // Revert TCCR settings (PWM settings f.e.)
+    sei();             // Re-enable interrupts
+    start();           // Start the timer again
 }
 
 //=============================================================================
@@ -128,14 +158,6 @@ void Timer::stop() {
     }
 }
 
-// Reset the overflow counter (Reset the timer)
-void Timer::reset() {
-    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-        overflow_counter = 0;
-        timer_overflowed = false;
-    }
-}
-
 //=============================================================================
 // Timer ISR Implementations
 // Description: Increment overflow counter on timer compare match interrupt.
@@ -144,17 +166,14 @@ void Timer::reset() {
 //=============================================================================
 ISR(TIMER0_COMPA_vect) {
     Timer::instance->overflow_counter++;
-    Timer::instance->timer_overflowed = true;
 }
 
 ISR(TIMER1_COMPA_vect) {
     Timer::instance->overflow_counter++;
-    Timer::instance->timer_overflowed = true;
 }
 
 ISR(TIMER2_COMPA_vect) {
     Timer::instance->overflow_counter++;
-    Timer::instance->timer_overflowed = true;
 }
 
 //=============================================================================
@@ -163,6 +182,7 @@ ISR(TIMER2_COMPA_vect) {
 //              for the timer. The TCCR registers are used to set the mode
 //              and prescaler of the timer.
 //=============================================================================
+/* TODO: How can we remove these dirty methods in a clever way..? */
 TimerConfig Timer::_clear_tccr() {
     TimerConfig config;
     switch (_num) {
@@ -213,167 +233,3 @@ void Timer::_set_tccr(const TimerConfig &config) {
             break;
     }
 }
-
-
-/*
-#include "drivers/timer.h"
-#include <util/atomic.h>
-#include <stdio.h> // For sprintf
-
-// Definitions of prescaler bits macros for each timer
-#define TIMER0_PS_BITS(prescaler) \
-    ((prescaler) == 1 ?     (1 << CS00) : \
-    (prescaler)  == 8 ?     (1 << CS01) : \
-    (prescaler)  == 64 ?   ((1 << CS01) | (1 << CS00)) : \
-    (prescaler)  == 256 ?   (1 << CS02) : \
-    (prescaler)  == 1024 ? ((1 << CS02) | (1 << CS00)) : \
-    0)
-
-#define TIMER1_PS_BITS(prescaler) \
-    ((prescaler) == 1 ?     (1 << CS10) : \
-    (prescaler)  == 8 ?     (1 << CS11) : \
-    (prescaler)  == 64 ?   ((1 << CS11) | (1 << CS10)) : \
-    (prescaler)  == 256 ?   (1 << CS12) : \
-    (prescaler)  == 1024 ? ((1 << CS12) | (1 << CS10)) : \
-    0)
-
-#define TIMER2_PS_BITS(prescaler) \
-    ((prescaler) == 1 ?     (1 << CS20) : \
-    (prescaler)  == 8 ?     (1 << CS21) : \
-    (prescaler)  == 32 ?   ((1 << CS21) | (1 << CS20)) : \
-    (prescaler)  == 64 ?    (1 << CS22) : \
-    (prescaler)  == 128 ?  ((1 << CS22) | (1 << CS20)) : \
-    (prescaler)  == 256 ?  ((1 << CS22) | (1 << CS21)) : \
-    (prescaler)  == 1024 ? ((1 << CS22) | (1 << CS21) | (1 << CS20)) : \
-    0)
-
-#define US_PER_SEC   1000000UL   // us per second
-#define MS_PER_SEC   1000.0      // ms per second
-
-// Static instance initialization
-Timer* Timer::instance = nullptr;
-
-Timer::Timer(timer_num num, time_unit unit) 
-  : overflow_counter(0), num(num), unit(unit) {
-    instance = this;  // Assign this instance to the static pointer
-}
-
-Timer::~Timer() {
-    stop(); // Ensure the timer is stopped on destruction
-}
-
-void Timer::init(uint32_t interval, Serial& serial) {
-    clear_timer_registers();
-    set_prescaler(interval);
-    configure_timer();
-
-    // Print value of prescaler and OCR value
-    char message[64];
-    sprintf(message, "Timer %d configured (Prescaler: %d, OCR: %lu)\r\n", num, _prescaler, _ocr_value);
-    serial.uart_put_str(message);
-}
-
-void Timer::start() {
-    sei(); // Enable global interrupts
-    switch (num) {
-        case TIMER0: TIMSK0 |= (1 << OCIE0A); break;
-        case TIMER1: TIMSK1 |= (1 << OCIE1A); break;
-        case TIMER2: TIMSK2 |= (1 << OCIE2A); break;
-    }
-}
-
-void Timer::stop() {
-    cli(); // Disable global interrupts
-    switch (num) {
-        case TIMER0: TIMSK0 &= ~(1 << OCIE0A); break;
-        case TIMER1: TIMSK1 &= ~(1 << OCIE1A); break;
-        case TIMER2: TIMSK2 &= ~(1 << OCIE2A); break;
-    }
-}
-
-void Timer::reset() {
-    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-        overflow_counter = 0;
-        timer_overflowed = false;
-    }
-}
-
-void Timer::set_prescaler(uint32_t interval) {
-    _prescaler = 1024; // Default prescaler
-    _ocr_value = 0;    // Default OCR value
-    _ocr_value = ((F_CPU / _prescaler) * (interval / 
-                            (unit == MICROS ? US_PER_SEC : MS_PER_SEC)) - 1);
-    uint8_t prescaler_bits = 0;
-
-    switch (num) {
-        case TIMER0:
-            prescaler_bits = TIMER0_PS_BITS(_prescaler);
-            break;
-        case TIMER1:
-            prescaler_bits = TIMER1_PS_BITS(_prescaler);
-            break;
-        case TIMER2:
-            prescaler_bits = TIMER2_PS_BITS(_prescaler);
-            break;
-    }
-    set_timer_registers(prescaler_bits, _ocr_value);
-}
-
-void Timer::configure_timer() {
-    // Configure timer in CTC mode
-    switch (num) {
-        case TIMER1:
-            TCCR1B |= (1 << WGM12);  // Set CTC mode for Timer1
-            break;
-        case TIMER0:
-        case TIMER2:
-            // Set the specific mode for Timer0 and Timer2 if needed
-            break;
-    }
-}
-
-void Timer::clear_timer_registers() {
-    // Clear configuration registers for Timer1
-    switch (num) {
-        case TIMER0:
-            TCCR0A = 0; TCCR0B = 0;
-            break;
-        case TIMER1:
-            TCCR1A = 0; TCCR1B = 0;
-            break;
-        case TIMER2:
-            TCCR2A = 0; TCCR2B = 0;
-            break;
-    }
-}
-
-void Timer::set_timer_registers(uint8_t prescaler_bits, uint16_t ocr_value) {
-    // Set prescaler and compare match register for Timer1
-    switch (num) {
-        case TIMER0:
-            OCR0A = ocr_value; TCCR0B |= prescaler_bits;
-            break;
-        case TIMER1:
-            OCR1A = ocr_value; TCCR1B |= prescaler_bits;
-            break;
-        case TIMER2:
-            OCR2A = ocr_value; TCCR2B |= prescaler_bits;
-            break;
-    }
-}
-
-ISR(TIMER0_COMPA_vect) {
-    Timer::instance->overflow_counter++;
-    Timer::instance->timer_overflowed = true;
-}
-
-ISR(TIMER1_COMPA_vect) {
-    Timer::instance->overflow_counter++;
-    Timer::instance->timer_overflowed = true;
-}
-
-ISR(TIMER2_COMPA_vect) {
-    Timer::instance->overflow_counter++;
-    Timer::instance->timer_overflowed = true;
-}
-*/

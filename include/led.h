@@ -23,7 +23,7 @@ public:
     void toggle();
     bool is_on();
     bool is_off();
-    void blink(uint16_t blink_time, Timer &timer, Serial &serial);
+    void blink(uint16_t blink_time, Timer &timer);
     void adc_blink(Timer &timer, Serial &serial, const uint8_t &adc_ch, 
                    const uint16_t &max_interval);
     void set_power(const uint16_t &cycle_time);
