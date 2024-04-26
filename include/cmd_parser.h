@@ -7,13 +7,12 @@
 
 class CMDParser {
 public:
-    enum Command { NO_CMD, LED_BLINK, LED_ADC, LED_PWR, BUTTON, LED_RAMP };
+    enum Command { CMD_NONE, LED_BLINK, LED_ADC, LED_PWR, BTN, LED_RAMP };
 
-    CMDParser();
     void parse_cmd(const char* cmd);
 
-    uint8_t  command = LED_BLINK;
-    char     cmd_string[20];
+    uint8_t command = LED_BLINK;
+    char cmd_string[20];
     uint16_t cmd_val1;
     uint16_t cmd_val2;
 };

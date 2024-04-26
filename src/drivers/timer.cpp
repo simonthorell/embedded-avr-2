@@ -23,16 +23,16 @@ Timer::Timer(TimerNum num, TimeUnit unit)
 void Timer::init(const uint32_t &interval, Serial &serial) {
     // Disable the timer before setting the mode and prescaler
     switch (_num) {
-        case TIMER_0: 
+        case T0: 
             TCCR0B = 0x00;
             TCCR0A = (1 << WGM01);  // CTC Mode
             break;
-        case TIMER_1: 
+        case T1: 
             TCCR1A = 0x00;
             TCCR1B = 0x00;
             TCCR1B = (1 << WGM12);  // CTC Mode
             break;
-        case TIMER_2: 
+        case T2: 
             TCCR2B = 0x00;
             TCCR2A = (1 << WGM21);  // CTC Mode
             break;
@@ -56,9 +56,9 @@ void Timer::set_prescaler(uint32_t interval, Serial &serial) {
     };
 
     // Choose the correct settings based on the unit
-    const PrescalerSetting* settings = (_unit == MICROS) ? 
+    const PrescalerSetting* settings = (_unit == US) ? 
         us_settings : ms_settings;
-    const size_t num_settings = (_unit == MICROS) ? 
+    const size_t num_settings = (_unit == US) ? 
         (sizeof(us_settings) / sizeof(us_settings[0])) : 
         (sizeof(ms_settings) / sizeof(ms_settings[0]));
     
@@ -73,7 +73,7 @@ void Timer::set_prescaler(uint32_t interval, Serial &serial) {
     }
 
     uint32_t ocr_value = ((F_CPU / prescaler) * (interval / 
-                           (_unit == MICROS ? US_PER_SEC : MS_PER_SEC)) - 1);
+                           (_unit == US ? US_PER_SEC : MS_PER_SEC)) - 1);
 
     // Inform user about the set pre-scaler and OCR value
     char message[50];
@@ -82,15 +82,15 @@ void Timer::set_prescaler(uint32_t interval, Serial &serial) {
 
     // Set the register values based on the set timer number
     switch (_num) {
-        case TIMER_0: 
+        case T0: 
             OCR0A = ocr_value;
             TCCR0B |= TIMER0_PS_BITS(prescaler);
             break;
-        case TIMER_1:
+        case T1:
             OCR1A = ocr_value;
             TCCR1B |= TIMER1_PS_BITS(prescaler);
             break;
-        case TIMER_2: 
+        case T2: 
             OCR2A = ocr_value;
             TCCR2B |= TIMER2_PS_BITS(prescaler);
             break;
@@ -103,18 +103,18 @@ void Timer::set_prescaler(uint32_t interval, Serial &serial) {
 void Timer::start() {
      // Enable Timer Compare Match A interrupt
     switch (_num) {
-        case TIMER_0: TIMSK0 |= (1 << OCIE0A); break;
-        case TIMER_1: TIMSK1 |= (1 << OCIE1A); break;
-        case TIMER_2: TIMSK2 |= (1 << OCIE2A); break;
+        case T0: TIMSK0 |= (1 << OCIE0A); break;
+        case T1: TIMSK1 |= (1 << OCIE1A); break;
+        case T2: TIMSK2 |= (1 << OCIE2A); break;
     }
 }
 
 void Timer::stop() {
     // Disable Timer Compare Match A interrupt
     switch (_num) {
-        case TIMER_0: TIMSK0 &= ~(1 << OCIE0A); break;
-        case TIMER_1: TIMSK1 &= ~(1 << OCIE1A); break;
-        case TIMER_2: TIMSK2 &= ~(1 << OCIE2A); break;
+        case T0: TIMSK0 &= ~(1 << OCIE0A); break;
+        case T1: TIMSK1 &= ~(1 << OCIE1A); break;
+        case T2: TIMSK2 &= ~(1 << OCIE2A); break;
     }
 }
 

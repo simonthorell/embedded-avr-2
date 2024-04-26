@@ -7,9 +7,7 @@
 
 #include "drivers/serial.h"
 
-#define F_CPU        16000000UL  // Clock frequency
-#define PRESCALER_US 1           // Prescaler for microseconds
-#define PRESCALER_MS 64          // Prescaler for milliseconds
+#define F_CPU        16000000UL  // Clock frequency (TODO: Define globally...)
 #define US_PER_SEC   1000000UL   // us per second
 #define MS_PER_SEC   1000.0      // ms per second
 
@@ -46,8 +44,8 @@ struct PrescalerSetting {
 
 class Timer {
 public:
-    enum TimerNum { TIMER_0, TIMER_1, TIMER_2 };
-    enum TimeUnit { MILLIS, MICROS };
+    enum TimerNum { T0, T1, T2 };
+    enum TimeUnit { MS, US };
 
     Timer(TimerNum num, TimeUnit unit); // Constructor
     void init(const uint32_t &interval, Serial &serial);
