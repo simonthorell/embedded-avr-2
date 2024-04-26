@@ -57,27 +57,26 @@ void LED::blink(uint16_t blink_interval, Timer &timer, Serial &serial) {
         _prev_overflows = timer.overflow_counter;
     }
 
-    char buf[128];
-    sprintf(buf, "Timer Overflow: %u, Count: %u, Total: %u\r\n", 
-            timer.overflow_counter, _prev_overflows, _overflow_counter);
-    serial.uart_put_str(buf);
+    // char buf[128];
+    // sprintf(buf, "Timer Overflow: %u, Count: %u, Total: %u\r\n", 
+    //         timer.overflow_counter, _prev_overflows, _overflow_counter);
+    // serial.uart_put_str(buf);
 
     if (_pwm_enabled) {
         if (_pwm._duty_cycle == 0) {
             _pwm.set_duty_cycle(_power);
-            serial.uart_put_str("LED ON\r\n");
+            // serial.uart_put_str("LED ON\r\n");
         } else {
             _power = _pwm._duty_cycle;
             _pwm.set_duty_cycle(0); // Off
-            serial.uart_put_str("LED OFF\r\n");
+            // serial.uart_put_str("LED OFF\r\n");
         }
     } else {
         toggle();
-        serial.uart_put_str("LED TOGGLE\r\n");
+        // serial.uart_put_str("LED TOGGLE\r\n");
     }
 
     _prev_overflows = timer.overflow_counter;
-
 }
 
 void LED::adc_blink(Timer &timer, Serial &serial, 

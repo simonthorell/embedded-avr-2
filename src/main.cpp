@@ -14,7 +14,7 @@
 #define BAUD_RATE 9600         // Set baud rate to 9600 bps
 
 #define POT_ADC_CH     0    // Set Potentiometer ADC input channel
-#define LED_BLINK_INTV 10  // Fixed LED blink interval (ms)
+#define LED_BLINK_INTV 1000  // Fixed LED blink interval (ms)
 #define MAX_ADC_INTV   100  // Max ADC input blink interval (ms)
 
 enum { ON_INTERUPT = 1 };
@@ -64,16 +64,20 @@ void loop(Serial &serial, LED &led_d3, Button &btn_d5, Timer &timer_1, CMD &cmd)
             uart_command_ready = false; // Reset flag
         }
 
+        // cmd.cmd = CMD::BTN; // Set default command
+
         switch(cmd.cmd) {
             case CMD::CMD_NONE: break;
             case CMD::LED_BLINK:
-                if (new_cmd) 
+                if (new_cmd) {
                     timer_1.set_prescaler(LED_BLINK_INTV, serial);
-                led_d3.blink(100, timer_1, serial);
+                }
+                led_d3.blink(1, timer_1, serial);
                 break;
             case CMD::LED_ADC:
-                if (new_cmd) 
+                if (new_cmd) {
                     timer_1.set_prescaler(1, serial);
+                }
                 led_d3.adc_blink(timer_1, serial, POT_ADC_CH, MAX_ADC_INTV);
                 break;
             case CMD::LED_PWR:
@@ -84,24 +88,18 @@ void loop(Serial &serial, LED &led_d3, Button &btn_d5, Timer &timer_1, CMD &cmd)
                 led_d3.blink(1, timer_1, serial); // Blink every(1) interupt
                 break;
             case CMD::BTN:
-                btn_d5.is_pressed();
+                if (new_cmd) { 
+                    timer_1.set_prescaler(1000, serial); 
+                }
+                btn_d5.count_presses();
+                btn_d5.print_presses(1, timer_1, serial);
                 break;
             case CMD::LED_RAMP:
-                if (new_cmd) 
+                if (new_cmd)
                     timer_1.set_prescaler(1, serial);
                 led_d3.ramp_brightness(cmd.cmd_val1, timer_1);
                 break;
         }
-
-        // // Print the timer overflow counter
-        // if (timer_1.timer_overflowed) {
-        //     serial.uart_put_str("Timer Overflow: ");
-        //     char buf[10];
-        //     sprintf(buf, "%lu", timer_1.overflow_counter);
-        //     serial.uart_put_str(buf);
-        //     serial.uart_put_str("\r\n");
-        //     timer_1.timer_overflowed = false;
-        // }
 
         new_cmd = false;    // Reset the new command flag
     }

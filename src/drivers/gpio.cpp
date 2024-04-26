@@ -35,10 +35,21 @@ GPIO::GPIO(PinType pin_type, uint8_t pin)
     (*(PORT_FOR_PIN(pinType, pin)) &= ~(1 << BIT_FOR_PIN(pinType, pin)))
 #define TOGGLE(pinType, pin) \
     (*(PORT_FOR_PIN(pinType, pin)) ^=  (1 << BIT_FOR_PIN(pinType, pin)))
-#define IS_HIGH(pinType, pin) \
+/*#define IS_HIGH(pinType, pin) \
     (*(PORT_FOR_PIN(pinType, pin)) & (1 << BIT_FOR_PIN(pinType, pin)))
 #define IS_LOW(pinType, pin) \
     !(*(PORT_FOR_PIN(pinType, pin)) & (1 << BIT_FOR_PIN(pinType, pin)))
+*/
+
+#define PIN_FOR_PIN(pinType, pin) \
+    ((pinType) == DIGITAL_PIN ? (pin < 8 ? &PIND : \
+    (pin < 16 ? &PINB : &PINC)) : nullptr)
+
+#define IS_HIGH(pinType, pin) \
+    (*(PIN_FOR_PIN(pinType, pin)) & (1 << BIT_FOR_PIN(pinType, pin)))
+
+#define IS_LOW(pinType, pin) \
+    !(*(PIN_FOR_PIN(pinType, pin)) & (1 << BIT_FOR_PIN(pinType, pin)))
 
 void GPIO::enable_output() {
     ENABLE_OUTPUT(_pin_type, _pin);
