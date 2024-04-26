@@ -108,7 +108,7 @@ void loop(Serial &serial, LED &led, Button &btn, Timer &timer, CMD &cmd) {
                 break;
             /***************************** PART 4 *****************************/
             case CMD::BTN:
-                if (new_cmd) timer.set_prescaler(cfg::btn_print_intvl, serial);
+                if (new_cmd) timer.set_prescaler(cfg::ms_timer, serial);
                 btn.count_presses();
                 btn.debounce_presses(cfg::on_interrupt, cfg::debounce_limit, 
                                         timer, serial); 
