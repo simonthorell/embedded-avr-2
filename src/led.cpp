@@ -8,10 +8,12 @@
 // Description: If PWM is set to PWM_ON, the LED will be initialized
 //======================================================================
 LED::LED(uint8_t pin, bool pwm) : _gpio(DIGITAL_PIN, pin), _pwm(pin) {
-    // Set the pin as an output using the GPIO object
+    _prev_overflows = 0;
+    _overflow_counter = 0;
+    _power = 255;
+    _pwm_enabled = pwm;
     _gpio.enable_output();
     if (pwm) {
-        _pwm_enabled = true;
         _pwm.init();
     }
 }
@@ -46,27 +48,39 @@ bool LED::is_off() {
 //              at a fixed interval, while the adc_blink method is used
 //              to blink the LED at an interval based on the ADC reading
 //======================================================================
-void LED::blink(const uint16_t &blink_interval, const Timer &timer) {
-    _overflow_counter += timer.overflow_counter;
-
-    if ((_overflow_counter >= blink_interval)) {
-
-        if (_pwm_enabled) {
-            if (_pwm._duty_cycle == 0) {
-                _pwm.set_duty_cycle(_pwm_power);                
-            } else {
-                _pwm_power = _pwm._duty_cycle;
-                _pwm.set_duty_cycle(0);
-            }
-        } else {
-            toggle();
-        }
-        
-        _overflow_counter = 0; // Reset LED counter
+void LED::blink(uint16_t blink_interval, Timer &timer, Serial &serial) {
+    if (timer.overflow_counter < (_prev_overflows + blink_interval)) {
+        return;
     }
+
+    if (_prev_overflows == 0 || timer.overflow_counter < _prev_overflows) {
+        _prev_overflows = timer.overflow_counter;
+    }
+
+    char buf[128];
+    sprintf(buf, "Timer Overflow: %u, Count: %u, Total: %u\r\n", 
+            timer.overflow_counter, _prev_overflows, _overflow_counter);
+    serial.uart_put_str(buf);
+
+    if (_pwm_enabled) {
+        if (_pwm._duty_cycle == 0) {
+            _pwm.set_duty_cycle(_power);
+            serial.uart_put_str("LED ON\r\n");
+        } else {
+            _power = _pwm._duty_cycle;
+            _pwm.set_duty_cycle(0); // Off
+            serial.uart_put_str("LED OFF\r\n");
+        }
+    } else {
+        toggle();
+        serial.uart_put_str("LED TOGGLE\r\n");
+    }
+
+    _prev_overflows = timer.overflow_counter;
+
 }
 
-void LED::adc_blink(const Timer &timer, Serial &serial, 
+void LED::adc_blink(Timer &timer, Serial &serial, 
                     const uint8_t &adc_ch, const uint16_t &max_interval) {
     
     _prev_blink_interval = _blink_interval;
@@ -78,7 +92,7 @@ void LED::adc_blink(const Timer &timer, Serial &serial,
     if(_blink_interval == 0) {
         turn_on();
     } else {
-        blink(_blink_interval, timer);
+        blink(_blink_interval, timer, serial);
     }
 
     // Notify if blink time has changed
@@ -87,7 +101,7 @@ void LED::adc_blink(const Timer &timer, Serial &serial,
             serial.uart_put_str("Blink off. LED set to fixed light.\r\n");
         } else {
             // Buffer to hold UART message
-            char message[128];
+            char message[64];
             sprintf(message, "Blink interval: %dms (ADC value: %d, Voltage: %dmV)\r\n",
                     _blink_interval, adc_reading, adc_voltage);
             serial.uart_put_str(message);

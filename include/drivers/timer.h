@@ -1,3 +1,4 @@
+
 #ifndef TIMER_H
 #define TIMER_H
 
@@ -42,24 +43,81 @@ struct PrescalerSetting {
     uint16_t prescaler;
 };
 
+struct TimerConfig {
+    uint16_t tccrA;
+    uint16_t tccrB;
+};
+
 class Timer {
 public:
-    enum TimerNum { T0, T1, T2 };
-    enum TimeUnit { MS, US };
+    enum TimerNum { TIMER0, TIMER1, TIMER2 };
+    enum TimeUnit { MILLIS, MICROS };
 
     Timer(TimerNum num, TimeUnit unit); // Constructor
+
     void init(const uint32_t &interval, Serial &serial);
     void set_prescaler(uint32_t interval, Serial &serial);
     void start();
     void stop();
     void reset();
+
     volatile bool timer_overflowed;
-    volatile unsigned long overflow_counter;
-    static Timer* timer_ptr; // Pointer to the timer instance
+    volatile uint16_t overflow_counter;
+    static Timer* instance; // Pointer to the timer instance
 
 private:
+    TimerConfig _clear_tccr();
+    void _set_tccr(const TimerConfig &config);
     TimerNum _num;
     TimeUnit _unit;
 };
 
 #endif
+
+/*
+#ifndef TIMER_H
+#define TIMER_H
+
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include "serial.h"
+
+class Timer {
+public:
+    enum timer_num { TIMER0, TIMER1, TIMER2 };
+    enum time_unit { MILLIS, MICROS };
+
+    Timer(timer_num num, time_unit unit);
+    ~Timer();
+
+    void init(uint32_t interval, Serial& serial);
+    void start();
+    void stop();
+    void reset();
+
+    static Timer* instance;
+    volatile uint32_t overflow_counter;
+    volatile bool timer_overflowed;
+
+private:
+
+    timer_num num;
+    time_unit unit;
+
+    uint16_t _prescaler;
+    uint32_t _ocr_value;
+
+    void set_prescaler(uint32_t interval);
+    uint8_t calculate_prescaler_bits(uint16_t prescaler) const;
+    void configure_timer();
+    void clear_timer_registers();
+    void set_timer_registers(uint8_t prescaler_bits, uint16_t ocr_value);
+};
+
+    // ISR prototypes, assuming they are implemented to use Timer::instance
+    ISR(TIMER0_COMPA_vect);
+    ISR(TIMER1_COMPA_vect);
+    ISR(TIMER2_COMPA_vect);
+
+#endif // TIMER_H
+*/

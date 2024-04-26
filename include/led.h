@@ -1,14 +1,14 @@
 #ifndef LED_H
 #define LED_H
 
-// #include <stdlib.h>
 #include <stdio.h>
-
 #include "drivers/gpio.h"
 #include "drivers/timer.h"
 #include "drivers/adc.h"
 #include "drivers/pwm.h"
 #include "drivers/serial.h"
+
+class PWModulation; // Forward Declaration
 
 class LED {
 public:
@@ -23,8 +23,8 @@ public:
     void toggle();
     bool is_on();
     bool is_off();
-    void blink(const uint16_t &blink_time, const Timer &timer);
-    void adc_blink(const Timer &timer, Serial &serial, const uint8_t &adc_ch, 
+    void blink(uint16_t blink_time, Timer &timer, Serial &serial);
+    void adc_blink(Timer &timer, Serial &serial, const uint8_t &adc_ch, 
                    const uint16_t &max_interval);
     void set_power(const uint16_t &cycle_time);
     void ramp_brightness(const uint16_t &cycle_time, Timer &timer);
@@ -35,10 +35,11 @@ private:
     PWModulation _pwm;
 
     bool _pwm_enabled;
-    uint8_t _pwm_power;
-    unsigned long _overflow_counter;
+    uint8_t _power;
     uint16_t _blink_interval;
     uint16_t _prev_blink_interval;
+    uint16_t _prev_overflows;
+    uint16_t _overflow_counter;
 };
 
 #endif // LED_H

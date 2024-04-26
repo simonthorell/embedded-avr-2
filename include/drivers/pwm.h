@@ -30,21 +30,21 @@
 // Class definition
 //==============================================================================
 class PWModulation {
+friend class LED;
 public:
-    // Constructor
     PWModulation(const uint8_t &pwmPin); // Constructor
-
     bool init();
     void reset();
     void set_duty_cycle(uint8_t duty);
     void ramp_output(const uint16_t &cycle_time, Timer &timer);
+
+protected:
     uint8_t _duty_cycle;
 
 private:
     uint8_t _pin;
     volatile uint16_t* _ocr16; // 16-bit output compare register (timer 1)
     volatile uint8_t* _ocr8;   // 8-bit output compare register (timer 0, 2)
-    // uint8_t _duty_cycle;
 
     // Variables for ramp method
     unsigned long _overflow_counter; 

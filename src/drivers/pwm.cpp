@@ -45,9 +45,7 @@ void PWModulation::reset() {
 //                a value between 0 and 255, where 0 is 0% and 255 is 100%.
 //==============================================================================
 void PWModulation::set_duty_cycle(uint8_t duty) {
-    _duty_cycle = duty;      // Save the duty cycle for future adjustments
-    /* This got a bit more complicated that expected to cover both the 
-       8 and 16-bit timers... */
+    _duty_cycle = duty;                          // Just store duty cycle value
     if (_ocr8) *_ocr8 = (uint8_t)(duty & 0xFF);  // Cast to 8-bit where needed
     if (_ocr16) *_ocr16 = duty;                  // Directly assign to 16-bit
 }
