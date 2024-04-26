@@ -57,29 +57,33 @@ void PWModulation::set_duty_cycle(uint8_t duty) {
 //                duty cycle will ramp up and down once every second.
 //==============================================================================
 void PWModulation::ramp_output(const uint16_t &cycle_time, Timer &timer) {
+    // Ensure cycle_time is large enough to avoid division by zero
+    if (cycle_time < 2 * UINT8_MAX) return;
+
     // Increment overflow counter based on timer overflows
     _overflow_counter += timer.overflow_counter;
+    timer.overflow_counter = 0; // Reset timer overflow counter
 
-    // Calculate the number of timer overflows required for a single step of duty cycle change
-    uint16_t steps = cycle_time / (UINT8_MAX * 2); // 255 * 2 overflows per cycle
+    // Calculate the number of timer overflows required for a single step
+    uint16_t steps = (cycle_time / (UINT8_MAX * 2)) * 2; // *2 ramps per cycle
 
-    // Update duty cycle every 'steps' overflows
     if (_overflow_counter >= steps) {
         if (_ramp_up) {
-            _duty_cycle++;
-            if (_duty_cycle >= UINT8_MAX) {
-                _duty_cycle = UINT8_MAX;
+            if (_duty_cycle < UINT8_MAX) {
+                _duty_cycle++;
+            } else {
                 _ramp_up = false;
             }
         } else {
-            _duty_cycle--;
-            if (_duty_cycle <= 0) {
-                _duty_cycle = 0;
+            if (_duty_cycle > 0) {
+                _duty_cycle--;
+            } else {
                 _ramp_up = true;
             }
         }
-        set_duty_cycle(_duty_cycle); // Set the current duty cycle
-        _overflow_counter = 0;        // Reset the overflow counter
+
+        set_duty_cycle(_duty_cycle);
+        _overflow_counter = 0; // Reset the overflow counter
     }
 }
 

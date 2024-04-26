@@ -48,7 +48,7 @@ bool LED::is_off() {
 //              at a fixed interval, while the adc_blink method is used
 //              to blink the LED at an interval based on the ADC reading
 //======================================================================
-void LED::blink(uint16_t blink_interval, Timer &timer, Serial &serial) {
+void LED::blink(uint16_t blink_interval, Timer &timer) {
     if (timer.overflow_counter < (_prev_overflows + blink_interval)) {
         return;
     }
@@ -57,25 +57,16 @@ void LED::blink(uint16_t blink_interval, Timer &timer, Serial &serial) {
         _prev_overflows = timer.overflow_counter;
     }
 
-    // char buf[128];
-    // sprintf(buf, "Timer Overflow: %u, Count: %u, Total: %u\r\n", 
-    //         timer.overflow_counter, _prev_overflows, _overflow_counter);
-    // serial.uart_put_str(buf);
-
     if (_pwm_enabled) {
         if (_pwm._duty_cycle == 0) {
             _pwm.set_duty_cycle(_power);
-            // serial.uart_put_str("LED ON\r\n");
         } else {
             _power = _pwm._duty_cycle;
             _pwm.set_duty_cycle(0); // Off
-            // serial.uart_put_str("LED OFF\r\n");
         }
     } else {
         toggle();
-        // serial.uart_put_str("LED TOGGLE\r\n");
     }
-
     _prev_overflows = timer.overflow_counter;
 }
 
@@ -91,7 +82,7 @@ void LED::adc_blink(Timer &timer, Serial &serial,
     if(_blink_interval == 0) {
         turn_on();
     } else {
-        blink(_blink_interval, timer, serial);
+        blink(_blink_interval, timer);
     }
 
     // Notify if blink time has changed
