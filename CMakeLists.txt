@@ -39,8 +39,8 @@ add_compile_options(
 )
 
 # Source and include files
-file(GLOB SRC_FILES CMAKE_CONFIGURE_DEPENDS "src/*.cpp")
-file(GLOB INC_FILES CMAKE_CONFIGURE_DEPENDS "libs/*.cpp")
+file(GLOB_RECURSE SRC_FILES CMAKE_CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB_RECURSE INC_FILES CMAKE_CONFIGURE_DEPENDS "libs/*.cpp")
 
 # Executable target
 add_executable(${PROJECT_NAME} ${SRC_FILES} ${INC_FILES})
