@@ -7,6 +7,9 @@
 #include "drivers/timer.h"
 #include "drivers/serial.h"
 
+//==============================================================================
+// Button Class Declaration
+//==============================================================================
 class Button {
 public:
     // Constructor
@@ -18,7 +21,6 @@ public:
     void count_presses();
     void debounce_presses(uint16_t interval, uint16_t debounce_limit, 
                           Timer &timer, Serial &serial);
-
 private:
     // Private Members
     GPIO _gpio;

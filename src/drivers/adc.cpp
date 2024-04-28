@@ -3,9 +3,6 @@
 //==============================================================================
 #include "drivers/adc.h"
 
-#define MAX_ADC_VALUE 1023
-#define MAX_MILLIVOLT 5000
-
 //==============================================================================
 // Constructor
 //==============================================================================
@@ -38,5 +35,5 @@ uint16_t ADConverter::read_channel(uint8_t ch) {
 }
 
 void ADConverter::convert_to_mv(uint16_t &adc_value) {
-    adc_value = static_cast<uint16_t>((static_cast<float>(adc_value) * MAX_MILLIVOLT) / MAX_ADC_VALUE);
+    adc_value = static_cast<uint16_t>((static_cast<float>(adc_value) * MAX_INPUT_VOLTAGE) / MAX_ADC_VALUE);
 }

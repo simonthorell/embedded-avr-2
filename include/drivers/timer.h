@@ -1,4 +1,3 @@
-
 #ifndef TIMER_H
 #define TIMER_H
 
@@ -8,6 +7,9 @@
 #include <stdio.h>          // For sprintf 
 #include "drivers/serial.h"
 
+//==============================================================================
+// Timer Structs
+//==============================================================================
 struct PrescalerSetting {
     uint32_t threshold;
     uint16_t prescaler;
@@ -18,6 +20,9 @@ struct TimerConfig {
     uint16_t tccrB;
 };
 
+//==============================================================================
+// Class definition
+//==============================================================================
 class Timer {
 public:
     enum TimerNum { TIMER0, TIMER1, TIMER2 };

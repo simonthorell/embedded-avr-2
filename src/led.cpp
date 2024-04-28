@@ -7,14 +7,20 @@
 // LED Constructor
 // Description: If PWM is set to PWM_ON, the LED will be initialized
 //======================================================================
-LED::LED(uint8_t pin, bool pwm) : _gpio(DIGITAL_PIN, pin), _pwm(pin) {
-    _prev_overflows = 0;
-    _overflow_counter = 0;
-    _power = 255;
-    _pwm_enabled = pwm;
-    _gpio.enable_output();
-    if (pwm) {
-        _pwm.init();
+LED::LED(uint8_t pin, bool enable_pwm) 
+    : _gpio(DIGITAL_PIN, pin),
+      _adc(),
+      _pwm(pin),
+      _pwm_enabled(enable_pwm),
+      _power(255),
+      _blink_interval(0),
+      _prev_blink_interval(0),
+      _prev_overflows(0),
+      _overflow_counter(0)
+{
+    _gpio.enable_output();      // Set the GPIO pin as output
+    if (enable_pwm) {
+        _pwm.init();            // Initialize PWM functionality if enabled
     }
 }
 

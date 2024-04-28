@@ -3,11 +3,6 @@
 //=============================================================================
 #include "drivers/timer.h"
 
-// Macros for setting the prescaler bits based on the prescaler value
-#define F_CPU        16000000UL  // Clock frequency (TODO: Define globally...)
-#define US_PER_SEC   1000000UL   // us per second
-#define MS_PER_SEC   1000.0      // ms per second
-
 #define TIMER0_PS_BITS(prescaler) \
     ((prescaler) == 1 ?     (1 << CS00) : \
     (prescaler)  == 8 ?     (1 << CS01) : \
@@ -33,6 +28,13 @@
     (prescaler)  == 256 ?  ((1 << CS22) | (1 << CS21)) : \
     (prescaler)  == 1024 ? ((1 << CS22) | (1 << CS21) | (1 << CS20)) : \
     0)
+
+#ifndef F_CPU
+#define F_CPU 16000000UL // Define default MCU clock speed if not defined
+#endif
+
+#define US_PER_SEC   1000000UL   // us per second
+#define MS_PER_SEC   1000.0      // ms per second
 
 // Static pointer initialization
 Timer* Timer::instance = nullptr;
@@ -74,9 +76,6 @@ void Timer::set_prescaler(uint32_t interval, Serial &serial) {
     stop(); // Stop the timer before setting the prescaler
     cli();  // Disable interrupts temporarily
     TimerConfig config = _clear_tccr(); // Clear & store TCCR (PWM settings f.e.)
-
-    /* TODO: Add the 8-bit timer settings... */
-    /* TODO: How to solve this method nicer/cleaner? */
 
     // Prescaler settings for ms and us (threshold)
     static const PrescalerSetting ms_settings[] = {
@@ -182,7 +181,6 @@ ISR(TIMER2_COMPA_vect) {
 //              for the timer. The TCCR registers are used to set the mode
 //              and prescaler of the timer.
 //=============================================================================
-/* TODO: How can we remove these dirty methods in a clever way..? */
 TimerConfig Timer::_clear_tccr() {
     TimerConfig config;
     switch (_num) {
