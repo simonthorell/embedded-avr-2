@@ -6,6 +6,8 @@
 //======================================================================
 // LED Constructor
 // Description: If PWM is set to PWM_ON, the LED will be initialized
+//              with PWM functionality. Otherwise, the LED will be
+//              initialized as a digital output.
 //======================================================================
 LED::LED(uint8_t pin, bool enable_pwm) 
     : _gpio(GPIO::DIGITAL_PIN, pin),
@@ -18,9 +20,10 @@ LED::LED(uint8_t pin, bool enable_pwm)
       _prev_overflows(0),
       _overflow_counter(0)
 {
-    _gpio.enable_output();      // Set the GPIO pin as output
+    _gpio.enable_output(); // Set the GPIO pin as output
+
     if (enable_pwm) {
-        _pwm.init();            // Initialize PWM functionality if enabled
+        _pwm.init(); // Initialize PWM functionality if enabled
     }
 }
 
@@ -28,23 +31,48 @@ LED::LED(uint8_t pin, bool enable_pwm)
 // LED Public Methods: turn_on, turn_off, toggle, is_on, is_off
 //======================================================================
 void LED::turn_on() {
-    _gpio.set_high();
+    if (_pwm_enabled) {
+        _pwm.set_duty_cycle(_power);
+    } else {
+        _gpio.set_high();
+    }
 }
 
 void LED::turn_off() {
-    _gpio.set_low();
+    if (_pwm_enabled) {
+        _pwm.set_duty_cycle(0); // Off
+    } else {
+        _gpio.set_low();
+    }
 }
 
 void LED::toggle() {
-    _gpio.toggle();
+    if (_pwm_enabled) {
+        if (_pwm._duty_cycle == 0) {
+            _pwm.set_duty_cycle(_power);
+        } else {
+            _power = _pwm._duty_cycle;
+            _pwm.set_duty_cycle(0); // Off
+        }
+    } else {
+        _gpio.toggle();
+    }
 }
 
 bool LED::is_on() {
-    return _gpio.is_high();
+    if (_pwm_enabled) {
+        return _pwm._duty_cycle > 0;
+    } else {
+        return _gpio.is_high();
+    }
 }
 
 bool LED::is_off() {
-    return _gpio.is_low();
+    if (_pwm_enabled) {
+        return _pwm._duty_cycle == 0;
+    } else {
+        return _gpio.is_low();
+    }
 }
 
 //======================================================================
@@ -56,26 +84,11 @@ bool LED::is_off() {
 //======================================================================
 void LED::blink(uint16_t blink_interval, Timer &timer) {
     // Return early if the timer has not reached threshold (blink_interval)
-    if (timer.overflow_counter < (_prev_overflows + blink_interval)) {
+    if (timer.overflow_counter < (_prev_overflows + blink_interval))
         return;
-    }
 
-    // If the timer counter overflows, reset the overflow counter
-    if (_prev_overflows == 0 || timer.overflow_counter < _prev_overflows) {
-        _prev_overflows = timer.overflow_counter;
-    }
-
-    if (_pwm_enabled) {
-        if (_pwm._duty_cycle == 0) {
-            _pwm.set_duty_cycle(_power);
-        } else {
-            _power = _pwm._duty_cycle;
-            _pwm.set_duty_cycle(0); // Off
-        }
-    } else {
-        toggle();
-    }
-    _prev_overflows = timer.overflow_counter;
+    toggle(); // Toggle the LED
+    _prev_overflows = timer.overflow_counter; // Reset the overflow counter
 }
 
 void LED::adc_blink(Timer &timer, Serial &serial, 
