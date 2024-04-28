@@ -25,7 +25,7 @@ namespace cfg {
     constexpr uint8_t  pot_adc_ch      = 0;     // ADC channel for potentiometer
     constexpr uint16_t led_blink_intvl = 200;   // LED blink interval in milliseconds
     constexpr uint16_t max_adc_intvl   = 100;   // Maximum ADC read interval in ms
-    constexpr uint16_t btn_print_intvl = 1000;  // Interval to print button press (ms)
+    constexpr uint16_t check_btn_intvl = 1000;  // Interval to print button press (ms)
     constexpr uint16_t debounce_limit  = 8000;  // Button debounce limit
     constexpr bool     on_interrupt    = true;  // Enable function on timer interrupt
     constexpr bool     ms_timer        = true;  // Timer interval (ms)
@@ -107,8 +107,19 @@ void loop(Serial &serial, LED &led, Button &btn, Timer &timer, CMD &cmd) {
             case CMD::BTN:
                 if (new_cmd) timer.set_prescaler(cfg::ms_timer, serial);
                 btn.count_presses();
-                btn.debounce_presses(cfg::btn_print_intvl, cfg::debounce_limit, 
-                                        timer, serial); 
+                btn.debounce_presses(cfg::check_btn_intvl, cfg::debounce_limit, 
+                                        timer, serial);
+                
+            /*  Vi använder en kombination av PinChangeInterrupt och ett gräns-
+                värde ('debounce_limit') för att filtrera ut oavsiktliga studsar  
+                över tiden som anges i `check_btn_intvl` (I detta exempel är 
+                gränsvärdet 8000 studs per 1000ms). Genom att sänka värdet på
+                båda dessa variabler kan vi uppnå en snabbare respons om syftet
+                är att t.ex. tända/släcka en LED och vill att det ska vara 'instant'.
+                När ett knapptryck har passerat gräns-värdet kan vi utföra t.ex. 
+                sätta en flagga som vi pollar varje iteration här, istället för att
+                bara printa ut att gränsvärdet är uppnått.
+            */ 
                 break;
             /***************************** PART 5 *****************************/
             case CMD::LED_RAMP:
@@ -117,6 +128,6 @@ void loop(Serial &serial, LED &led, Button &btn, Timer &timer, CMD &cmd) {
                 break;
         }
 
-        new_cmd = false;    // Reset the new command flag
+        new_cmd = false; // Reset the new command flag
     }
 }
