@@ -54,7 +54,9 @@ void Button::count_presses() {
 
 void Button::debounce_presses(uint16_t interval, uint16_t debounce_limit, 
                               Timer &timer, Serial &serial) {
-    if (timer.overflow_counter < (_debounce_counter + interval)) { return; }
+    if (timer.overflow_counter < (_debounce_counter + interval)) { 
+        return; 
+    }
 
     // Debounce by checking if the button is pressed for a certain interval
     if (_button_presses > debounce_limit) {

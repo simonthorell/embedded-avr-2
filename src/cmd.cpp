@@ -2,41 +2,46 @@
 // CommandParser Class Implementation
 //==============================================================================
 #include "cmd.h"
-#define CMD_LEN 16 // Max command length (Don't change without changing sscanf)
-                  // Consequense could result in vulnrable buffer overflow!
+
+namespace cmdlimit {
+    constexpr uint8_t  max_power  = 255;
+    constexpr uint16_t min_freq_t = 200;
+    constexpr uint16_t max_freq_t = 5000;
+    constexpr uint16_t max_ramp_t = 5000;
+}
+
 //==============================================================================
 // Public Method: parseCommand
 //==============================================================================
 void CMD::parse_cmd(const char* cmd_input) {
-    // Temporary command strings  
-    char cmd_1[CMD_LEN] = "ledblink";
-    char cmd_2[CMD_LEN] = "ledadc";
-    char cmd_3[CMD_LEN] = "ledpowerfreq";
-    char cmd_4[CMD_LEN] = "button";
-    char cmd_5[CMD_LEN] = "ledramptime";
+    const char* cmd_ledblink     = "ledblink";
+    const char* cmd_ledadc       = "ledadc";
+    const char* cmd_ledpowerfreq = "ledpowerfreq";
+    const char* cmd_button       = "button";
+    const char* cmd_ledramptime  = "ledramptime";
 
     // Parse the command string and prevent buffer overflow with max length 16
     int res = sscanf(cmd_input, "%16s %u %u", cmd_string, &cmd_val1, &cmd_val2);
 
     // Now compare the first word of the string to the cmd's
-    if (strncmp(cmd_string, cmd_1, strlen(cmd_1)) == 0) {
+    if (strncmp(cmd_string, cmd_ledblink, strlen(cmd_ledblink)) == 0) {
         if (res == 1) cmd = LED_BLINK;
     }
-    else if (strncmp(cmd_string, cmd_2, strlen(cmd_2)) == 0) {
+    else if (strncmp(cmd_string, cmd_ledadc, strlen(cmd_ledadc)) == 0) {
         if (res == 1) cmd = LED_ADC;
     }
-    else if (strncmp(cmd_string, cmd_3, strlen(cmd_3)) == 0) {
+    else if (strncmp(cmd_string, cmd_ledpowerfreq, strlen(cmd_ledpowerfreq)) == 0) {
         if (res == 3 && 
-            cmd_val1 <= 255 && 
-            cmd_val2 >= 200 && cmd_val2 <= 5000) { 
+            cmd_val1 <= cmdlimit::max_power && 
+            cmd_val2 >= cmdlimit::min_freq_t && cmd_val2 <= cmdlimit::max_freq_t) { 
             cmd = LED_PWR;
         } else { cmd = CMD_NONE; }
     }
-    else if (strncmp(cmd_string, cmd_4, strlen(cmd_4)) == 0) {
+    else if (strncmp(cmd_string, cmd_button, strlen(cmd_button)) == 0) {
         if (res == 1) cmd = BTN;
     }
-    else if (strncmp(cmd_string, cmd_5, strlen(cmd_5)) == 0) {
-        if (res == 2 && cmd_val1 <= 5000) {
+    else if (strncmp(cmd_string, cmd_ledramptime, strlen(cmd_ledramptime)) == 0) {
+        if (res == 2 && cmd_val1 <= cmdlimit::max_ramp_t) {
             cmd = LED_RAMP;
         } else { cmd = CMD_NONE; } 
     } else {

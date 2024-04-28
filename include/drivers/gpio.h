@@ -46,6 +46,10 @@ enum PinType { DIGITAL_PIN, ANALOG_PIN };
          (pin) == 4 ?  PORTC4 : \
          (pin) == 5 ?  PORTC5 : 0) : 0)
 
+#define PIN_FOR_PIN(pinType, pin) \
+    ((pinType) == DIGITAL_PIN ? (pin < 8 ? &PIND : \
+    (pin < 16 ? &PINB : &PINC)) : nullptr)
+
 //=============================================================================
 // Class definition
 //=============================================================================

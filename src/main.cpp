@@ -1,8 +1,14 @@
 //=============================================================================
 // Main application file
 //*****************************************************************************
-// Wokwi Link: (It's buggy i noticed, so it depends on the compiler mood...)
-// Link: https://wokwi.com/projects/395865725914835969
+// Application Commands:
+// Part 1: ledblink
+// Part 2: ledadc
+// Part 3: ledpowerfreq <power> <freq>  (power: 0-255, freq: 200-5000)
+// Part 4: button
+// Part 5: ledramptime <time>           (time(ms): 0-5000)
+//*****************************************************************************
+// Wokwi Simulation: https://wokwi.com/projects/395865725914835969
 //=============================================================================
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -11,15 +17,6 @@
 #include "cmd.h"
 #include "led.h"
 #include "button.h"
-
-//=============================================================================
-// Hej Peter!
-// Det här är kanske inte den mest effektiva koden jag skrivit, utan jag har
-// som sagt lagt mest tid på att försöka få till generiska drivrutiner, vilket
-// jag lärt mig extremt mycket av! Hoppas koden ändå ser ok ut...
-// Tack för superbra kursinnehåll och grym feedback i dessa kurser! :) 
-// Mvh, Simon
-//=============================================================================
 
 // Configuration Constants
 namespace cfg {
@@ -110,7 +107,7 @@ void loop(Serial &serial, LED &led, Button &btn, Timer &timer, CMD &cmd) {
             case CMD::BTN:
                 if (new_cmd) timer.set_prescaler(cfg::ms_timer, serial);
                 btn.count_presses();
-                btn.debounce_presses(cfg::on_interrupt, cfg::debounce_limit, 
+                btn.debounce_presses(cfg::btn_print_intvl, cfg::debounce_limit, 
                                         timer, serial); 
                 break;
             /***************************** PART 5 *****************************/
