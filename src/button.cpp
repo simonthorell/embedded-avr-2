@@ -9,7 +9,7 @@
 //======================================================================
 // Button Constructor
 //======================================================================
-Button::Button(uint8_t pin) : _gpio(DIGITAL_PIN, pin), _pin(pin),
+Button::Button(uint8_t pin) : _gpio(GPIO::DIGITAL_PIN, pin), _pin(pin),
                               _button_presses(0) {}
 
 //======================================================================

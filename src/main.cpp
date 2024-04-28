@@ -62,13 +62,13 @@ int main(void) {
 // Main loop
 //=============================================================================
 void loop(Serial &serial, LED &led, Button &btn, Timer &timer, CMD &cmd) {
-    char rec_cmd[BUFFER_SIZE]; // Buffer for received commands
-    bool new_cmd = false;      // Flag to indicate new command been received
+    char rec_cmd[serial.buf_size]; // Buffer for received commands
+    bool new_cmd = false;          // Flag to indicate new command received
 
     while (true) {
         // Check if a new command has been received over UART
-        if (uart_command_ready) {
-            serial.uart_rec_str(rec_cmd, BUFFER_SIZE);
+        if (serial.uart_command_ready) {
+            serial.uart_rec_str(rec_cmd, serial.buf_size);
             cmd.parse_cmd(rec_cmd);
             if (cmd.cmd) {
                 new_cmd = true;
@@ -78,7 +78,7 @@ void loop(Serial &serial, LED &led, Button &btn, Timer &timer, CMD &cmd) {
             } else {
                 serial.uart_put_str("Invalid Command!\r\n");
             }
-            uart_command_ready = false; // Reset command ready flag
+            serial.uart_command_ready = false; // Reset command ready flag
         }
 
         // Execute the command

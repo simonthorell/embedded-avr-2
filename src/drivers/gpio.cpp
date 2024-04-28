@@ -8,23 +8,23 @@
 //=============================================================================
 // Macro to obtain a pointer to the appropriate DDR register for a given pin
 #define DDR_FOR_PIN(pinType, pin) \
-    ((pinType) == DIGITAL_PIN ? \
+    ((pinType) == GPIO::DIGITAL_PIN ? \
         ((pin) <= 7 ? &DDRD : \
          (pin) >= 8 && (pin) <= 13 ? &DDRB : nullptr) : \
-     (pinType) == ANALOG_PIN ? \
+     (pinType) == GPIO::ANALOG_PIN ? \
         ((pin) <= 5 ? &DDRC : nullptr) : nullptr)
 
 // Macro to obtain a pointer to the appropriate PORT register for a given pin
 #define PORT_FOR_PIN(pinType, pin) \
-    ((pinType) == DIGITAL_PIN ? \
+    ((pinType) == GPIO::DIGITAL_PIN ? \
         ((pin) <= 7 ? &PORTD : \
          (pin) >= 8 && (pin) <= 13 ? &PORTB : nullptr) : \
-     (pinType) == ANALOG_PIN ? \
+     (pinType) == GPIO::ANALOG_PIN ? \
         ((pin) <= 5 ? &PORTC : nullptr) : nullptr)
 
 // Macro to determine the correct bit within a register for a given pin
 #define BIT_FOR_PIN(pinType, pin) \
-    ((pinType) == DIGITAL_PIN ? \
+    ((pinType) == GPIO::DIGITAL_PIN ? \
         ((pin) == 0 ?  PORTD0 : \
          (pin) == 1 ?  PORTD1 : \
          (pin) == 2 ?  PORTD2 : \
@@ -39,7 +39,7 @@
          (pin) == 11 ? PORTB3 : \
          (pin) == 12 ? PORTB4 : \
          (pin) == 13 ? PORTB5 : 0) : \
-     (pinType) == ANALOG_PIN ? \
+     (pinType) == GPIO::ANALOG_PIN ? \
         ((pin) == 0 ?  PORTC0 : \
          (pin) == 1 ?  PORTC1 : \
          (pin) == 2 ?  PORTC2 : \
@@ -48,7 +48,7 @@
          (pin) == 5 ?  PORTC5 : 0) : 0)
 
 #define PIN_FOR_PIN(pinType, pin) \
-    ((pinType) == DIGITAL_PIN ? (pin < 8 ? &PIND : \
+    ((pinType) == GPIO::DIGITAL_PIN ? (pin < 8 ? &PIND : \
     (pin < 16 ? &PINB : &PINC)) : nullptr)
 
 //======================================================================

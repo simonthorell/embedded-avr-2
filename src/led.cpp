@@ -8,7 +8,7 @@
 // Description: If PWM is set to PWM_ON, the LED will be initialized
 //======================================================================
 LED::LED(uint8_t pin, bool enable_pwm) 
-    : _gpio(DIGITAL_PIN, pin),
+    : _gpio(GPIO::DIGITAL_PIN, pin),
       _adc(),
       _pwm(pin),
       _pwm_enabled(enable_pwm),

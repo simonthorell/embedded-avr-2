@@ -3,14 +3,17 @@
 
 #include <avr/io.h>
 
-enum PinType { DIGITAL_PIN, ANALOG_PIN };
-
 //=============================================================================
 // GPIO Class Declaration
 //=============================================================================
 class GPIO {
 public:
-    GPIO(PinType pin_type, uint8_t pin);  // Constructor
+    enum PinType { DIGITAL_PIN, ANALOG_PIN };
+
+    // Constructor
+    GPIO(PinType pin_type, uint8_t pin);
+
+    // Public methods
     void enable_output();
     void enable_input();
     void enable_pullup();
