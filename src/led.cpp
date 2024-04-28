@@ -49,10 +49,12 @@ bool LED::is_off() {
 //              to blink the LED at an interval based on the ADC reading
 //======================================================================
 void LED::blink(uint16_t blink_interval, Timer &timer) {
+    // Return early if the timer has not reached threshold (blink_interval)
     if (timer.overflow_counter < (_prev_overflows + blink_interval)) {
         return;
     }
 
+    // If the timer counter overflows, reset the overflow counter
     if (_prev_overflows == 0 || timer.overflow_counter < _prev_overflows) {
         _prev_overflows = timer.overflow_counter;
     }
@@ -90,8 +92,7 @@ void LED::adc_blink(Timer &timer, Serial &serial,
         if (_blink_interval == 0) {
             serial.uart_put_str("Blink off. LED set to fixed light.\r\n");
         } else {
-            // Buffer to hold UART message
-            char message[64];
+            char message[64]; // Buffer to hold UART message
             sprintf(message, "Blink interval: %dms (ADC value: %d, Voltage: %dmV)\r\n",
                     _blink_interval, adc_reading, adc_voltage);
             serial.uart_put_str(message);
