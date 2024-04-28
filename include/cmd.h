@@ -5,6 +5,9 @@
 #include <string.h> // strncmp
 #include <stdio.h>  // sscanf
 
+//==============================================================================
+// CMD Class Declaration
+//==============================================================================
 class CMD {
 public:
     enum Command { CMD_NONE, LED_BLINK, LED_ADC, LED_PWR, BTN, LED_RAMP };

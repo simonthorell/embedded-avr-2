@@ -5,29 +5,7 @@
 #include "drivers/timer.h"
 
 //==============================================================================
-// Macors for configuring PWM pins and registers
-//==============================================================================
-#define PWM_DDR(pin) (*(&DDR##pin))
-#define PWM_PORT(pin) (*(&PORT##pin))
-#define PWM_PIN(pin) (*(&PIN##pin))
-
-#define CONFIGURE_PWM_DDR(ddr, port) ((ddr) |= (1 << (port)))
-
-#define CONFIGURE_PWM(ddr, port, ocr, com, wgm0, wgm1, cs) \
-    ddr |= (1 << port),                      /* Set pin as output */ \
-    TCCR##ocr##A |= (1 << com) | (1 << wgm0), /* Setup PWM mode */ \
-    TCCR##ocr##B |= (1 << cs)  | (1 << wgm1)  /* Setup prescaler and additional mode bits */
-
-#define SETUP_PWM_FOR_PIN(pin) \
-    if      ((pin) == 3)  { CONFIGURE_PWM(DDRD, PORTD3, 2, COM2B1, WGM20, WGM21, CS21); } \
-    else if ((pin) == 5)  { CONFIGURE_PWM(DDRD, PORTD5, 0, COM0B1, WGM00, WGM01, CS01); } \
-    else if ((pin) == 6)  { CONFIGURE_PWM(DDRD, PORTD6, 0, COM0A1, WGM00, WGM01, CS01); } \
-    else if ((pin) == 9)  { CONFIGURE_PWM(DDRB, PORTB1, 1, COM1A1, WGM10, WGM11, CS11); } \
-    else if ((pin) == 10) { CONFIGURE_PWM(DDRB, PORTB2, 1, COM1B1, WGM10, WGM11, CS11); } \
-    else if ((pin) == 11) { CONFIGURE_PWM(DDRB, PORTB3, 2, COM2A1, WGM20, WGM21, CS21); }
-
-//==============================================================================
-// Class definition
+// PWM Class Declaration
 //==============================================================================
 class PWModulation {
 friend class LED;

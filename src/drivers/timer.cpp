@@ -3,11 +3,6 @@
 //=============================================================================
 #include "drivers/timer.h"
 
-// Macros for setting the prescaler bits based on the prescaler value
-#define F_CPU        16000000UL  // Clock frequency (TODO: Define globally...)
-#define US_PER_SEC   1000000UL   // us per second
-#define MS_PER_SEC   1000.0      // ms per second
-
 #define TIMER0_PS_BITS(prescaler) \
     ((prescaler) == 1 ?     (1 << CS00) : \
     (prescaler)  == 8 ?     (1 << CS01) : \
@@ -33,6 +28,13 @@
     (prescaler)  == 256 ?  ((1 << CS22) | (1 << CS21)) : \
     (prescaler)  == 1024 ? ((1 << CS22) | (1 << CS21) | (1 << CS20)) : \
     0)
+
+#ifndef F_CPU
+#define F_CPU 16000000UL // Define default MCU clock speed if not defined
+#endif
+
+#define US_PER_SEC   1000000UL   // us per second
+#define MS_PER_SEC   1000.0      // ms per second
 
 // Static pointer initialization
 Timer* Timer::instance = nullptr;
@@ -73,13 +75,10 @@ void Timer::init(const uint32_t &interval, Serial &serial) {
 void Timer::set_prescaler(uint32_t interval, Serial &serial) {
     stop(); // Stop the timer before setting the prescaler
     cli();  // Disable interrupts temporarily
-    TimerConfig config = _clear_tccr(); // Clear & store TCCR (PWM settings f.e.)
-
-    /* TODO: Add the 8-bit timer settings... */
-    /* TODO: How to solve this method nicer/cleaner? */
+    Timer::TimerConfig config = _clear_tccr(); // Clear & store TCCR (PWM settings f.e.)
 
     // Prescaler settings for ms and us (threshold)
-    static const PrescalerSetting ms_settings[] = {
+    static const Timer::PrescalerSetting ms_settings[] = {
         // Prescaler settings for milliseconds (no need for prescaler 1)
         {30, 8}, {250, 64}, {1000, 256}, {UINT32_MAX, 1024}
     };
@@ -88,7 +87,7 @@ void Timer::set_prescaler(uint32_t interval, Serial &serial) {
     };
 
     // Choose the correct settings based on the unit
-    const PrescalerSetting* settings = (_unit == MICROS) ? 
+    const Timer::PrescalerSetting* settings = (_unit == MICROS) ? 
         us_settings : ms_settings;
     const size_t num_settings = (_unit == MICROS) ? 
         (sizeof(us_settings) / sizeof(us_settings[0])) : 
@@ -182,8 +181,7 @@ ISR(TIMER2_COMPA_vect) {
 //              for the timer. The TCCR registers are used to set the mode
 //              and prescaler of the timer.
 //=============================================================================
-/* TODO: How can we remove these dirty methods in a clever way..? */
-TimerConfig Timer::_clear_tccr() {
+Timer::TimerConfig Timer::_clear_tccr() {
     TimerConfig config;
     switch (_num) {
         case TIMER0: 
@@ -215,7 +213,7 @@ TimerConfig Timer::_clear_tccr() {
     return config;
 }
 
-void Timer::_set_tccr(const TimerConfig &config) {
+void Timer::_set_tccr(const Timer::TimerConfig &config) {
     // Adds the previous settings back to the TCCR registers
     // For example PWM settings!
     switch (_num) {

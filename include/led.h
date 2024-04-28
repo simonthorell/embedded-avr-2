@@ -8,7 +8,10 @@
 #include "drivers/pwm.h"
 #include "drivers/serial.h"
 
-class PWModulation; // Forward Declaration
+//==============================================================================
+// LED Class Declaration
+//==============================================================================
+class PWModulation; // Forward Declaration (LED is friend of PWModulation)
 
 class LED {
 public:

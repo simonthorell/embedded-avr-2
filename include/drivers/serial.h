@@ -4,7 +4,8 @@
 #include <avr/io.h>
 
 //======================================================================
-// Macros for UART Configuration
+// Serial Configuration Macros
+// TODO: Move some of these macros into methods directly?
 //======================================================================
 #ifndef F_CPU
 #define F_CPU 16000000UL // Define MCU clock speed if not defined
@@ -62,15 +63,21 @@
 // Enable UART Interrupts
 #define ENABLE_UART_RX_INTERRUPT() (UCSR0B |= (1 << RXCIE0))
 
-#define BUFFER_SIZE 64
-
-extern volatile char uart_buffer[BUFFER_SIZE];
-extern volatile uint8_t uart_read_pos;
-extern volatile uint8_t uart_write_pos;
-extern volatile bool uart_command_ready;
-
+//==============================================================================
+// Serial Class Declaration
+//==============================================================================
 class Serial {
 public:
+    static constexpr uint8_t buf_size = 64; // Buffer size for UART communication
+
+    // Circular buffer for UART communication
+    static volatile char uart_buffer[buf_size];
+    static volatile uint8_t uart_next_pos;
+    static volatile uint8_t uart_read_pos;
+    static volatile uint8_t uart_write_pos;
+    static volatile bool uart_command_ready;
+    static volatile bool uart_buffer_overflow;
+
     // Constructor
     Serial();
 
@@ -85,7 +92,7 @@ public:
     void uart_echo();
 
 private:
-    bool initialized;    // Flag to check if UART is initialized
+    bool initialized; // Flag to check if UART is initialized
 
     // Private constexpr methods (compile-time validations)
     static constexpr bool valid_baud(const uint32_t baud_rate);

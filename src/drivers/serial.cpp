@@ -6,33 +6,34 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-//======================================================================
-// Circular buffer for UART data
-volatile char    uart_buffer[BUFFER_SIZE];
-volatile uint8_t uart_next_pos = 0;
-volatile uint8_t uart_read_pos = 0;
-volatile uint8_t uart_write_pos = 0;
-volatile bool    uart_command_ready = false;
-volatile bool    uart_buffer_overflow = false;
+// Static Members definitions
+constexpr uint8_t Serial::buf_size;
+volatile char Serial::uart_buffer[Serial::buf_size];
+volatile uint8_t Serial::uart_next_pos = 0;
+volatile uint8_t Serial::uart_read_pos = 0;
+volatile uint8_t Serial::uart_write_pos = 0;
+volatile bool Serial::uart_command_ready = false;
+volatile bool Serial::uart_buffer_overflow = false;
 
 //======================================================================
 // Interrupt Service Routine for UART receive
-ISR(USART_RX_vect) {
+//======================================================================
+ISR(USART_RX_vect) {    
     char rec_char = UART_DATA_REGISTER;
-    uart_next_pos = (uart_write_pos + 1) % BUFFER_SIZE;
+    Serial::uart_next_pos = (Serial::uart_write_pos + 1) % Serial::buf_size;
 
     // Check for string terminator to set command ready flag
     if (rec_char == '\n') {
-        uart_command_ready = true;
+        Serial::uart_command_ready = true;
     }
 
     // Check for buffer overflow (if no overflow, write to buffer)
-    if (uart_next_pos != uart_read_pos) {
-        uart_buffer_overflow = false;
-        uart_buffer[uart_write_pos] = rec_char;
-        uart_write_pos = uart_next_pos;
+    if (Serial::uart_next_pos != Serial::uart_read_pos) {
+        Serial::uart_buffer_overflow = false;
+        Serial::uart_buffer[Serial::uart_write_pos] = rec_char;
+        Serial::uart_write_pos = Serial::uart_next_pos;
     } else {
-        uart_buffer_overflow = true;
+        Serial::uart_buffer_overflow = true;
         // Buffer is full/overflowed - Error is handled in read method!
     }
 }
@@ -99,7 +100,7 @@ bool Serial::uart_get_char(char* character) {
     if (uart_read_pos != uart_write_pos) {
         // There is data available
         *character = uart_buffer[uart_read_pos++];
-        if (uart_read_pos >= BUFFER_SIZE) {
+        if (uart_read_pos >= buf_size) {
             uart_read_pos = 0; // Wrap around if at the end of the buffer
         }
         return true; // Indicate that a character was read
@@ -114,7 +115,7 @@ void Serial::uart_rec_str(char* buffer, const uint8_t& buf_size) {
     }
 
     // Make sure the buffer is <= specified BUFFER_SIZE
-    if (buf_size < BUFFER_SIZE) {
+    if (buf_size < Serial::buf_size) {
         const char* error_msg = "Specified buffer size is too small!\n";
         uart_put_str(error_msg);
         buffer[0] = '\0'; // Ensure the buffer is null-terminated
@@ -132,10 +133,10 @@ void Serial::uart_rec_str(char* buffer, const uint8_t& buf_size) {
     unsigned char charCount = 0;
 
     // Loop until newline or buffer is full
-    while (uart_read_pos != uart_write_pos && charCount < (BUFFER_SIZE - 1)) {
+    while (uart_read_pos != uart_write_pos && charCount < (buf_size - 1)) {
         // Read a character from the circular buffer
         char receivedChar = uart_buffer[uart_read_pos++];
-        if (uart_read_pos >= BUFFER_SIZE) uart_read_pos = 0;
+        if (uart_read_pos >= buf_size) uart_read_pos = 0;
 
         if (receivedChar == '\n') break;    // Stop on newline
         buffer[charCount++] = receivedChar; // Store character
@@ -168,5 +169,5 @@ constexpr bool Serial::valid_bits(uint8_t data_bits) {
 }
 
 constexpr uint8_t Serial::valid_buf_size() {
-    return BUFFER_SIZE < 1 ? 1 : (BUFFER_SIZE >= 255 ? 255 : BUFFER_SIZE);
+    return buf_size < 1 ? 1 : (Serial::buf_size >= 255 ? 255 : buf_size);
 }
