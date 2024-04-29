@@ -114,8 +114,8 @@ void loop(Serial &serial, LED &led, Button &btn, Timer* timer_0,
         /****************************** PART 3 ******************************/
             case Command::LED_PWR:
                 if (new_cmd) {
-                    led.set_power(cmd.cmd_val1);
                     timer_1->configure(Timer::CTC, cmd.cmd_val2, serial);
+                    led.set_power(cmd.cmd_val1);
                 }
                 led.blink(cfg::on_interrupt, *timer_1);
                 break;
