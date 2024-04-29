@@ -26,6 +26,7 @@ private:
     GPIO _gpio;
     uint8_t _pin;
     uint32_t _debounce_counter;
+    uint32_t _last_timer_count;
     volatile uint32_t _button_presses;
 
     // Private Methods
