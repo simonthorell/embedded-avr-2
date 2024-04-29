@@ -1,6 +1,6 @@
-//=============================================================================
+//==============================================================================
 // Timer Driver Class Implementation
-//=============================================================================
+//==============================================================================
 #include "drivers/timer.h"
 
 // Static Singleton Instances
@@ -8,11 +8,11 @@ Timer Timer::timer_0(Timer::TIMER0, Timer::MILLIS);
 Timer Timer::timer_1(Timer::TIMER1, Timer::MILLIS);
 Timer Timer::timer_2(Timer::TIMER2, Timer::MILLIS);
 
-//=============================================================================
+//==============================================================================
 // Timer Public Method: getInstance
 // Description: Returns the Singletone instance of the timer based on the the 
 //              timer number.
-//=============================================================================
+//==============================================================================
 Timer* Timer::get_instance(TimerNum num) {
     switch (num) {
         case TIMER0: return &timer_0;
@@ -22,19 +22,19 @@ Timer* Timer::get_instance(TimerNum num) {
     }
 }
 
-//=============================================================================
+//==============================================================================
 // Timer Private Constructor 
 // Description: Accepts the timer type (0,1,2) and the needed time unit 
 //              (MICROS, MILLIS) and initializes the timer accordingly.
-//=============================================================================
+//==============================================================================
 Timer::Timer(TimerNum num, TimeUnit unit) 
     : overflow_counter(0), interval_devisor(0), _num(num), _unit(unit) {
 }
 
-//=============================================================================
+//==============================================================================
 // Timer Public Method: configure
 // Description: Configure the timer with the given mode and interval.
-//=============================================================================
+//==============================================================================
 void Timer::configure(TimerMode mode, uint32_t interval, Serial &serial) {
     stop();                   // Stop the timer before setup 
     cli();                    // Disable interrupts temporarily
@@ -75,11 +75,11 @@ void Timer::configure(TimerMode mode, uint32_t interval, Serial &serial) {
     start();           // Start the timer again
 }
 
-//=============================================================================
+//==============================================================================
 // Timer Public Methods: start, stop
 // Description: Start or stop the timer by enabling or disabling the
 //              Compare A match interrupt.
-//=============================================================================
+//==============================================================================
 void Timer::start() {
      // Enable Timer Compare Match A interrupt
     switch (_num) {
@@ -98,9 +98,9 @@ void Timer::stop() {
     }
 }
 
-//=============================================================================
+//==============================================================================
 // ISR Timer Compare Match A Implementation
-//=============================================================================
+//==============================================================================
 ISR(TIMER0_COMPA_vect) {
     Timer::handle_timer_interrupt(&Timer::timer_0);
 }
@@ -123,10 +123,10 @@ void Timer::handle_timer_interrupt(Timer* timer) {
     }
 }
 
-//=============================================================================
+//==============================================================================
 // Timer Private Method: set_mode
 // Description: Set the timer mode to NORMAL, CTC, or EXT_CLOCK.
-//=============================================================================
+//==============================================================================
 void Timer::set_mode(TimerMode mode) {
     cli(); // Disable global interrupts
 
@@ -162,11 +162,11 @@ void Timer::set_mode(TimerMode mode) {
     sei(); // Enable global interrupts
 }
 
-//=============================================================================
+//==============================================================================
 // Timer Private Methods: set_prescaler
 // Description: Calculate the prescaler value based on the interval and return
 //              the prescaler value.
-//=============================================================================
+//==============================================================================
 uint16_t Timer::set_prescaler(uint32_t interval, Serial &serial) {
     _adjusted_interval = interval; // Keep the original interval
     interval_devisor = 1;          // Default to 0
@@ -262,11 +262,11 @@ uint16_t Timer::set_prescaler(uint32_t interval, Serial &serial) {
     return prescaler;
 }
 
-//=============================================================================
+//==============================================================================
 // Timer Private Methods: _clear_prescaler_bits
 // Description: Clear the prescaler bits for the timer. This is used to reset
 //              the prescaler bits before setting the new prescaler value.
-//=============================================================================
+//==============================================================================
 void Timer::_clear_prescaler_bits() {
     // Clear only the prescaler bits
     switch (_num) {

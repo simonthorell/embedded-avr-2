@@ -35,5 +35,6 @@ uint16_t ADConverter::read_channel(uint8_t ch) {
 }
 
 void ADConverter::convert_to_mv(uint16_t &adc_value) {
-    adc_value = static_cast<uint16_t>((static_cast<float>(adc_value) * MAX_INPUT_VOLTAGE) / MAX_ADC_VALUE);
+    float voltage_ratio = static_cast<float>(adc_value) * MAX_INPUT_VOLTAGE;
+    adc_value = static_cast<uint16_t>(voltage_ratio / MAX_ADC_VALUE);
 }

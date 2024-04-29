@@ -5,6 +5,7 @@
 
 //==============================================================================
 // PWM Configuration Macros
+// Description: These are very difficult to make as efficient using methods...
 //==============================================================================
 #define PWM_DDR(pin) (*(&DDR##pin))
 #define PWM_PORT(pin) (*(&PORT##pin))
@@ -51,9 +52,9 @@ bool PWModulation::init() {
     if (_valid_pwm_pin(_pin)) {
         SETUP_PWM_FOR_PIN(_pin);   // Register bits defined in pwm.h
         reset();                   // Set the initial duty cycle
-        return true;               // Valid pin
+        return true;   // Valid pin
     } else {
-        return false;              // Invalid pin
+        return false; // Invalid pin
     }
 }
 
@@ -67,11 +68,11 @@ void PWModulation::reset() {
 //                a value between 0 and 255, where 0 is 0% and 255 is 100%.
 //==============================================================================
 void PWModulation::set_duty_cycle(uint8_t duty) {
-    _duty_cycle = duty;                          // Just store duty cycle value
+    _duty_cycle = duty; // Just store duty cycle value
     if (_ocr8) {
-        *_ocr8 = (uint8_t)(duty & 0xFF);  // Update 8-bit OCR, cast to ensure no overflow
+        *_ocr8 = (uint8_t)(duty & 0xFF);  // 8-bit OCR, cast to ensure no overflow
     } else {
-        *_ocr16 = duty;  // Update 16-bit OCR
+        *_ocr16 = duty; // Update 16-bit OCR
     } 
 }
 
