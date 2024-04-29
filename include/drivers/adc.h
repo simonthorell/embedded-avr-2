@@ -3,14 +3,14 @@
 
 #include <avr/io.h>
 
-#define MAX_INPUT_VOLTAGE 5000 // Maximum input voltage in mV
-#define MAX_ADC_VALUE     1023
-
 //==============================================================================
 // ADC Class Declaration
 //==============================================================================
 class ADConverter {
 public:
+    static constexpr int MAX_INPUT_VOLTAGE = 5000;  // Maximum input voltage(mV)
+    static constexpr int MAX_ADC_VALUE = 1023;      // Maximum ADC value
+
     // Constructor
     ADConverter();
 

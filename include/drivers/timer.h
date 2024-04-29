@@ -11,11 +11,6 @@
 #define F_CPU 16000000UL // Define default MCU clock speed if not defined
 #endif
 
-#define US_PER_SEC   1000000UL   // us per second
-#define MS_PER_SEC   1000.0      // ms per second
-#define MAX_INTERVAL 4000        // Maximum interval for 16-bit timers (ms)
-#define MAX_INTERVAL_8BIT 255    // Maximum interval for 8-bit  timers
-
 #define TIMER0_PS_BITS(prescaler) \
     ((prescaler) == 1 ?     (1 << CS00) : \
     (prescaler)  == 8 ?     (1 << CS01) : \
@@ -56,39 +51,48 @@ public:
         uint16_t prescaler;
     };
 
-    // Constructor
-    Timer(TimerNum num, TimeUnit unit);
+    // constexpr variables
+    static constexpr uint32_t US_PER_SEC        = 1000000UL; // microseconds per second
+    static constexpr double   MS_PER_SEC        = 1000.0;    // milliseconds per second
+    static constexpr uint16_t MAX_INTERVAL      = 4000;      // Maximum interval for 16-bit timers (ms)
+    static constexpr uint8_t  MAX_INTERVAL_8BIT = 255;       // Maximum interval for 8-bit timers
+
+    // Static Singleton Instances
+    static Timer timer_0;
+    static Timer timer_1;
+    static Timer timer_2;
 
     // Public methods
+    static Timer* get_instance(TimerNum num); // Get the Singleton instance
     void configure(TimerMode mode, uint32_t interval, Serial &serial);
-    
+    void start();
+    void stop();
+
     // Static variables
     volatile uint16_t overflow_counter;
     volatile uint16_t captured_value;
     volatile uint16_t interval_devisor;
     volatile uint16_t temp_interval_devisor;
 
-    // Static Pointers for Timer Instances (Singletons)
-    static Timer* timer_0_instance; // Pointer to the timer timer_0_instance
-    static Timer* timer_1_instance; // Pointer to the timer timer_1_instance
-    static Timer* timer_2_instance; // Pointer to the timer timer_1_instance
-
+    // Static Prescaler Settings
     static const PrescalerSettings ms_settings_8bit[];
     static const PrescalerSettings us_settings_8bit[];
     static const PrescalerSettings ms_settings_16bit[];
     static const PrescalerSettings us_settings_16bit[];
 
-    static void handle_timer_interupt(Timer* timer); // Timer interrupt handler
+    // Timer interrupt handler
+    static void handle_timer_interrupt(Timer* timer);
 
 private:
+    // Constructor
+    Timer(TimerNum num, TimeUnit unit);
+
     // Private variables
     TimerNum _num;
     TimeUnit _unit;
     uint16_t _adjusted_interval;
     
     // Private methods
-    void start();
-    void stop();
     uint16_t set_prescaler(uint32_t interval, Serial &serial);
     void set_mode(TimerMode mode);
     void _clear_prescaler_bits();

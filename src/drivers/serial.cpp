@@ -1,6 +1,6 @@
-//======================================================================
+//==============================================================================
 // Serial Driver Class Implementation
-//======================================================================
+//==============================================================================
 #include "drivers/serial.h"
 #include <stdio.h>
 #include <avr/io.h>
@@ -15,9 +15,9 @@ volatile uint8_t Serial::uart_write_pos = 0;
 volatile bool Serial::uart_command_ready = false;
 volatile bool Serial::uart_buffer_overflow = false;
 
-//======================================================================
+//==============================================================================
 // Interrupt Service Routine for UART receive
-//======================================================================
+//==============================================================================
 ISR(USART_RX_vect) {    
     char rec_char = UART_DATA_REGISTER;
     Serial::uart_next_pos = (Serial::uart_write_pos + 1) % Serial::buf_size;
@@ -38,18 +38,18 @@ ISR(USART_RX_vect) {
     }
 }
 
-//======================================================================
+//==============================================================================
 // Constructor: Serial
 // Description: Initializes the Serial object with the specified buffer
 //              size and checks if the UART is initialized in registers.
-//======================================================================
+//==============================================================================
 Serial::Serial() : initialized(IS_UART_ENABLED()) {}
 
-//======================================================================
+//==============================================================================
 // Public Method: init
 // Description: This method initializes the UART module with the
 //              specified baud rate and data bits.
-//======================================================================
+//==============================================================================
 void Serial::uart_init(const uint32_t& baud_rate, const uint8_t& data_bits){
     // Check if arguments are valid before initializing
     if (valid_baud(baud_rate) && valid_bits(data_bits)) {
@@ -58,7 +58,10 @@ void Serial::uart_init(const uint32_t& baud_rate, const uint8_t& data_bits){
         ENABLE_UART(baud_rate, data_bits);
         initialized = true;
         char buffer[64];
-        sprintf(buffer, "UART Initialized with %lu baud rate and %u-bits\r\n", baud_rate, data_bits);
+        sprintf(buffer, 
+                "UART Initialized with %lu baud rate and %u-bits\r\n",
+                baud_rate, 
+                data_bits);
         uart_put_str(buffer);
 
         ENABLE_UART_RX_INTERRUPT(); // Enable UART receive interrupt
@@ -68,11 +71,11 @@ void Serial::uart_init(const uint32_t& baud_rate, const uint8_t& data_bits){
     }
 }
 
-//======================================================================
+//==============================================================================
 // Public Methods: put_char, put_str, uart_getchar, uart_rec_str
 // Description: These methods are used to transmit and receive data
 //              via UART.
-//======================================================================
+//==============================================================================
 // Transmits a single character
 void Serial::uart_put_char(unsigned char data) {
     // Return if UART is not initialized
@@ -124,7 +127,8 @@ void Serial::uart_rec_str(char* buffer, const uint8_t& buf_size) {
 
     // Command longer than buffer size => buffer overflow...
     if (uart_buffer_overflow) {
-        const char* error_msg = "Buffer overflowed, make sure your command is within buffer range!\n";
+        const char* error_msg = "Buffer overflowed, make sure your command is "
+                                "within buffer range!\n";
         uart_put_str(error_msg);
         buffer[0] = '\0'; // Ensure the buffer is null-terminated
         return;
@@ -153,11 +157,11 @@ void Serial::uart_echo() {
     }
 }
 
-//======================================================================
+//==============================================================================
 // Private Methods: valid_baud, valid_bits, valid_buf_size
 // Description: Using constexpr to validate baud rate, data bits, and
 //              buffer size at compile time for saving memory.
-//======================================================================
+//==============================================================================
 constexpr bool Serial::valid_baud(uint32_t baud_rate) {
     return baud_rate == 9600 || baud_rate == 19200 || baud_rate == 38400 ||
            baud_rate == 57600 || baud_rate == 115200;
