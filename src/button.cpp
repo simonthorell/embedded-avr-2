@@ -29,14 +29,36 @@ bool Button::is_pressed() {
 }
 
 void Button::print_presses(const uint16_t &interval, Timer &timer, Serial &serial) {
+
+    /*
+    * This function uses a hardware timer to track button presses, efficiently
+    * reducing CPU load by avoiding continuous polling. The timer's overflow
+    * is checked to report button presses.
+    * 
+    * To enhance button press detection reliability, consider hardware
+    * debouncing. Options include:
+    * 
+    * 1. Capacitor Debouncing:
+    *    Attach a capacitor (e.g., 0.1 µF) between the button pin and ground.
+    *    This smooths out the noise from button bounce, stabilizing the input
+    *    signal. It's simple and effective for non-frequent pressing.
+    * 
+    * 2. Transistor Debouncing:
+    *    A transistor-based switch can sharply cut off bouncing, ideal for
+    *    buttons used frequently needing rapid response. The transistor acts
+    *    as a fast switch that activates firmly when pressed, filtering minor
+    *    bounces.
+    * 
+    * Implementing these methods will greatly reduce signal noise, leading to
+    * more accurate software responses to user inputs.
+    */
+
     if (timer.overflow_counter >= interval) {
         timer.overflow_counter = 0; // Reset the counter after printing
-
-        // Print the presses from Timer1 Counter
         char buf[32];
         sprintf(buf, "Button presses: %u\r\n", TCNT1);
         serial.uart_put_str(buf);
-        TCNT1 = 0; // Reset the counter
+        TCNT1 = 0; // Reset the timer counter 
     }
 }
 
