@@ -3,35 +3,32 @@
 //=============================================================================
 #include "drivers/timer.h"
 
-// Static pointer initialization (For Singleton Pattern)
-Timer* Timer::timer_0_instance = nullptr;
-Timer* Timer::timer_1_instance = nullptr;
-Timer* Timer::timer_2_instance = nullptr;
+// Static Singleton Instances
+Timer Timer::timer_0(Timer::TIMER0, Timer::MILLIS);
+Timer Timer::timer_1(Timer::TIMER1, Timer::MILLIS);
+Timer Timer::timer_2(Timer::TIMER2, Timer::MILLIS);
 
 //=============================================================================
-// Timer Constructor
+// Timer Public Method: getInstance
+// Description: Returns the Singletone instance of the timer based on the the 
+//              timer number.
+//=============================================================================
+Timer* Timer::getInstance(TimerNum num) {
+    switch (num) {
+        case TIMER0: return &timer_0;
+        case TIMER1: return &timer_1;
+        case TIMER2: return &timer_2;
+        default: return nullptr;
+    }
+}
+
+//=============================================================================
+// Timer Private Constructor 
 // Description: Accepts the timer type (0,1,2) and the needed time unit 
 //              (MICROS, MILLIS) and initializes the timer accordingly.
 //=============================================================================
 Timer::Timer(TimerNum num, TimeUnit unit) 
-  : overflow_counter(0), interval_devisor(0), _num(num), _unit(unit) {
-    switch (num) {
-        case TIMER0:
-            if (timer_0_instance == nullptr) {
-                timer_0_instance = this;
-            }
-            break;
-        case TIMER1:
-            if (timer_1_instance == nullptr) {
-                timer_1_instance = this;
-            }
-            break;
-        case TIMER2:
-            if (timer_2_instance == nullptr) {
-                timer_2_instance = this;
-            }
-            break;
-    }
+    : overflow_counter(0), interval_devisor(0), _num(num), _unit(unit) {
 }
 
 //=============================================================================
@@ -39,9 +36,9 @@ Timer::Timer(TimerNum num, TimeUnit unit)
 // Description: Configure the timer with the given mode and interval.
 //=============================================================================
 void Timer::configure(TimerMode mode, uint32_t interval, Serial &serial) {
-    stop();                  // Stop the timer before setup 
-    cli();                   // Disable interrupts temporarily
-    _clear_prescaler_bits(); // Clear the prescaler bits
+    stop();                   // Stop the timer before setup 
+    cli();                    // Disable interrupts temporarily
+    _clear_prescaler_bits();  // Clear the prescaler bits
 
     // Prescaler settings for ms and us (threshold)
     uint16_t prescaler = set_prescaler(interval, serial);
@@ -103,19 +100,19 @@ void Timer::stop() {
 // ISR Timer Compare Match A Implementation
 //=============================================================================
 ISR(TIMER0_COMPA_vect) {
-    Timer::handle_timer_interupt(Timer::timer_0_instance);
+    Timer::handle_timer_interrupt(&Timer::timer_0);
 }
 
 ISR(TIMER1_COMPA_vect) {
-    Timer::handle_timer_interupt(Timer::timer_1_instance);
+    Timer::handle_timer_interrupt(&Timer::timer_1);
 }
 
 ISR(TIMER2_COMPA_vect) {
-    Timer::handle_timer_interupt(Timer::timer_2_instance);
+    Timer::handle_timer_interrupt(&Timer::timer_2);
 }
 
 // Static method to handle timer interrupt
-void Timer::handle_timer_interupt(Timer* timer) {
+void Timer::handle_timer_interrupt(Timer* timer) {
     if (timer->interval_devisor <= 1) {
         timer->overflow_counter++;
         timer->interval_devisor = timer->temp_interval_devisor;
@@ -133,44 +130,29 @@ void Timer::set_mode(TimerMode mode) {
 
     switch (_num) {
         case TIMER0:
-            TCCR0A &= ~((1 << WGM01) | (1 << WGM00)); // Clear mode bits
-            switch (mode) {
-                case NORMAL: 
-                    break; // No bits needed for normal mode
-                case CTC:
-                    TCCR0A |= (1 << WGM01); // Set CTC mode
-                    break;
-                case EXT_CLOCK: 
-                    break; // Not applicable for Timer0
+            // Clear mode bits
+            TCCR0A &= ~((1 << WGM01) | (1 << WGM00));
+            if (mode == CTC) {
+                TCCR0A |= (1 << WGM01);
             }
             break;
         case TIMER1:
-            TCCR1A &= ~((1 << WGM11) | (1 << WGM10)); // Clear mode bits
-            TCCR1B &= ~((1 << WGM13) | (1 << WGM12));
-            TCCR1B &= ~((1 << ICES1)); // Clear input capture edge select
-            switch (mode) {
-                case NORMAL: 
-                    break; // No bits needed for normal mode
-                case CTC:
-                    TCCR1B |= (1 << WGM12); // Set CTC mode
-                    break;
-                case EXT_CLOCK:
-                    TCCR1B |= (1 << ICES1); // Set input capture edge select
-                    TCCR1B |= (1 << CS12) | (1 << CS11); // Set external clock mode
-                    TCNT1 = 0; // Reset the counter
-                    break;
+            // Clear mode bits and input capture edge select
+            TCCR1A &= ~((1 << WGM11) | (1 << WGM10));
+            TCCR1B &= ~((1 << WGM13) | (1 << WGM12)) & ~((1 << ICES1));
+            if (mode == CTC) {
+                TCCR1B |= (1 << WGM12);
+            } else if (mode == EXT_CLOCK) {
+                // Set the external clock mode & input capture edge select
+                TCCR1B |= (1 << ICES1) | (1 << CS12) | (1 << CS11);
+                TCNT1 = 0; // Reset the counter
             }
             break;
         case TIMER2:
-            TCCR2A &= ~((1 << WGM21) | (1 << WGM20)); // Clear mode bits
-            switch (mode) {
-                case NORMAL:
-                    break; // No bits needed for normal mode
-                case CTC:
-                    TCCR2A |= (1 << WGM21); // Set CTC mode
-                    break;
-                case EXT_CLOCK:
-                    break; // Not applicable for Timer2
+            // Clear mode bits
+            TCCR2A &= ~((1 << WGM21) | (1 << WGM20));
+            if (mode == CTC) {
+                TCCR2A |= (1 << WGM21);
             }
             break;
     }
@@ -184,15 +166,16 @@ void Timer::set_mode(TimerMode mode) {
 //              the prescaler value.
 //=============================================================================
 uint16_t Timer::set_prescaler(uint32_t interval, Serial &serial) {
-    // Variable to keep track of the interval adjustments
-    _adjusted_interval = interval;
-    interval_devisor = 1;  // Default to 0
+    _adjusted_interval = interval; // Keep the original interval
+    interval_devisor = 1;          // Default to 0
 
-    /* Check if the interval is greater than the maximum interval that the timer
+    /* 
+       Check if the interval is greater than the maximum interval that the timer
        can handle. If so, find the largest divisor that will result in a value
        under the maximum interval for least CPU usage. ISR will decrement the
        divisor until it reaches 1 (no division). 
     */
+
     if (interval > MAX_INTERVAL) {
         uint32_t best_result = 0;
         // Loop to find the largest divisor with a result under MAX_INTERVAL
@@ -214,6 +197,13 @@ uint16_t Timer::set_prescaler(uint32_t interval, Serial &serial) {
         }
     }
 
+     /* 
+       These are manually set threshold values for the prescaler settings. 
+       The threshold is the maximum interval that the prescaler can handle. 
+       These are for now hardcoded values and should be refactored to be 
+       dynamically calculated based on the F_CPU and the prescaler values.
+    */
+
     const Timer::PrescalerSettings ms_settings_8bit[] = {
         {15, 64}, {125, 256}, {250, 1024}
     };
@@ -233,6 +223,8 @@ uint16_t Timer::set_prescaler(uint32_t interval, Serial &serial) {
     const Timer::PrescalerSettings* settings;
     size_t num_settings;
 
+
+    // Set the settings based on the timer bit size and selected time unit
     if (_unit == MICROS) {
         if (_num == TIMER1) {
             settings = us_settings_16bit;
@@ -251,7 +243,8 @@ uint16_t Timer::set_prescaler(uint32_t interval, Serial &serial) {
         }
     }
 
-    uint16_t prescaler = 1024;  // Default to the highest prescaler
+    uint16_t prescaler = 1024;  // Default to the highest prescaler (for safety)
+
     // Check the interval vs thresholds to set the prescaler
     for (size_t i = 0; i < num_settings; ++i) {
         if (_adjusted_interval < settings[i].threshold) {
