@@ -13,7 +13,7 @@ Timer Timer::timer_2(Timer::TIMER2, Timer::MILLIS);
 // Description: Returns the Singletone instance of the timer based on the the 
 //              timer number.
 //=============================================================================
-Timer* Timer::getInstance(TimerNum num) {
+Timer* Timer::get_instance(TimerNum num) {
     switch (num) {
         case TIMER0: return &timer_0;
         case TIMER1: return &timer_1;
@@ -76,7 +76,9 @@ void Timer::configure(TimerMode mode, uint32_t interval, Serial &serial) {
 }
 
 //=============================================================================
-// Timer Public Methods: start, stop, reset 
+// Timer Public Methods: start, stop
+// Description: Start or stop the timer by enabling or disabling the
+//              Compare A match interrupt.
 //=============================================================================
 void Timer::start() {
      // Enable Timer Compare Match A interrupt
@@ -191,8 +193,8 @@ uint16_t Timer::set_prescaler(uint32_t interval, Serial &serial) {
         }
         char buf[64];
         if (best_result > 0) {
-            sprintf(buf, "Set Divisor: %d with result %d.\r\n", interval_devisor, 
-                    _adjusted_interval);
+            sprintf(buf, "Set Divisor: %d (Result %d%s)\r\n", interval_devisor, 
+                    _adjusted_interval, (_unit == Timer::MICROS ? "us" : "ms"));
             serial.uart_put_str(buf);
         }
     }
@@ -200,24 +202,26 @@ uint16_t Timer::set_prescaler(uint32_t interval, Serial &serial) {
      /* 
        These are manually set threshold values for the prescaler settings. 
        The threshold is the maximum interval that the prescaler can handle. 
-       These are for now hardcoded values and should be refactored to be 
-       dynamically calculated based on the F_CPU and the prescaler values.
+       These are for now hardcoded values and should maybe be refactored to
+       be dynamically calculated based on the F_CPU and the prescaler
+       values. We also need to add the additional prescaler values 
+       available for timer_2! (prescaler 32 and 128 for ms timer!)
     */
 
     const Timer::PrescalerSettings ms_settings_8bit[] = {
-        {15, 64}, {125, 256}, {250, 1024}
+        {1, 64}, {4, 256}, {16, 1024}
     };
 
     const Timer::PrescalerSettings us_settings_8bit[] = {
-        {500, 8}, {2000, 64}, {8000, 256}, {32000, 1024}
+        {16, 1}, {128, 8}, {1024, 64}, {4096, 256}, {16384, 1024}
     };
 
     const Timer::PrescalerSettings ms_settings_16bit[] = {
-        {30, 8}, {250, 64}, {1000, 256}, {UINT32_MAX, 1024}
+        {32, 8}, {262, 64}, {1048, 256}, {UINT32_MAX, 1024}
     };
 
     const Timer::PrescalerSettings us_settings_16bit[] = {
-        {3000, 1}, {30000, 8}, {250000, 64}, {1000000, 256}, {UINT32_MAX, 1024}
+        {4096, 1}, {32768, 8}, {262144, 64}, {1048567, 256}, {UINT32_MAX, 1024}
     };
 
     const Timer::PrescalerSettings* settings;

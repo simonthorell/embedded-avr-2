@@ -63,7 +63,7 @@ public:
     static Timer timer_2;
 
     // Public methods
-    static Timer* getInstance(TimerNum num);
+    static Timer* get_instance(TimerNum num); // Get the Singleton instance
     void configure(TimerMode mode, uint32_t interval, Serial &serial);
     void start();
     void stop();

@@ -43,8 +43,8 @@ int main(void) {
     Serial  serial;
     LED     led(cfg::led_pwm_pin, true);
     Button  btn(cfg::btn_pin);
-    Timer*  timer_0 = Timer::getInstance(Timer::TIMER0);
-    Timer*  timer_1 = Timer::getInstance(Timer::TIMER1);
+    Timer*  timer_0 = Timer::get_instance(Timer::TIMER0);
+    Timer*  timer_1 = Timer::get_instance(Timer::TIMER1);
     Command cmd;
 
     // Initialize the modules
