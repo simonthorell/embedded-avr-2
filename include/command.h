@@ -8,9 +8,9 @@
 //==============================================================================
 // CMD Class Declaration
 //==============================================================================
-class CMD {
+class Command {
 public:
-    enum Command { CMD_NONE, LED_BLINK, LED_ADC, LED_PWR, BTN, LED_RAMP };
+    enum Commands { NO_CMD, LED_BLINK, LED_ADC, LED_PWR, BUTTON, LED_RAMP };
 
     void parse_cmd(const char* cmd);
 

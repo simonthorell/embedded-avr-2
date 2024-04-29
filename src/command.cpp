@@ -1,7 +1,7 @@
 //==============================================================================
 // CommandParser Class Implementation
 //==============================================================================
-#include "cmd.h"
+#include "command.h"
 
 namespace cmdlimit {
     constexpr uint8_t  max_power  = 255;
@@ -13,7 +13,7 @@ namespace cmdlimit {
 //==============================================================================
 // Public Method: parseCommand
 //==============================================================================
-void CMD::parse_cmd(const char* cmd_input) {
+void Command::parse_cmd(const char* cmd_input) {
     const char* cmd_ledblink     = "ledblink";
     const char* cmd_ledadc       = "ledadc";
     const char* cmd_ledpowerfreq = "ledpowerfreq";
@@ -35,16 +35,16 @@ void CMD::parse_cmd(const char* cmd_input) {
             cmd_val1 <= cmdlimit::max_power && 
             cmd_val2 >= cmdlimit::min_freq_t && cmd_val2 <= cmdlimit::max_freq_t) { 
             cmd = LED_PWR;
-        } else { cmd = CMD_NONE; }
+        } else { cmd = NO_CMD; }
     }
     else if (strncmp(cmd_string, cmd_button, strlen(cmd_button)) == 0) {
-        if (res == 1) cmd = BTN;
+        if (res == 1) cmd = BUTTON;
     }
     else if (strncmp(cmd_string, cmd_ledramptime, strlen(cmd_ledramptime)) == 0) {
         if (res == 2 && cmd_val1 <= cmdlimit::max_ramp_t) {
             cmd = LED_RAMP;
-        } else { cmd = CMD_NONE; } 
+        } else { cmd = NO_CMD; } 
     } else {
-        cmd = CMD_NONE;
+        cmd = NO_CMD;
     }
 }

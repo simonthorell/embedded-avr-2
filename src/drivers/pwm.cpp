@@ -68,8 +68,11 @@ void PWModulation::reset() {
 //==============================================================================
 void PWModulation::set_duty_cycle(uint8_t duty) {
     _duty_cycle = duty;                          // Just store duty cycle value
-    if (_ocr8) *_ocr8 = (uint8_t)(duty & 0xFF);  // Cast to 8-bit where needed
-    if (_ocr16) *_ocr16 = duty;                  // Directly assign to 16-bit
+    if (_ocr8) {
+        *_ocr8 = (uint8_t)(duty & 0xFF);  // Update 8-bit OCR, cast to ensure no overflow
+    } else {
+        *_ocr16 = duty;  // Update 16-bit OCR
+    } 
 }
 
 //==============================================================================

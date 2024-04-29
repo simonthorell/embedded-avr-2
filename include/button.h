@@ -18,19 +18,13 @@ public:
     // Public Methods
     void init();
     bool is_pressed();
-    void count_presses();
-    void debounce_presses(uint16_t interval, uint16_t debounce_limit, 
-                          Timer &timer, Serial &serial);
+    void print_presses(const uint16_t &interval, Timer &timer, Serial &serial);
+
 private:
     // Private Members
     GPIO _gpio;
     uint8_t _pin;
-    uint32_t _debounce_counter;
     volatile uint32_t _button_presses;
-
-    // Private Methods
-    void handle_press();
-    void print_presses(Serial &serial);
     
     // Compile time validation
     static constexpr bool _valid_btn_pin(uint8_t pin);

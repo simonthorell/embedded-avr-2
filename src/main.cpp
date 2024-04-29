@@ -14,46 +14,49 @@
 #include <avr/interrupt.h>
 #include "drivers/serial.h"
 #include "drivers/timer.h"
-#include "cmd.h"
+#include "command.h"
 #include "led.h"
 #include "button.h"
 
 // Configuration Constants
 namespace cfg {
-    constexpr uint16_t baud_rate       = 9600;  // UART baud rate
+    constexpr uint32_t baud_rate       = 9600;  // UART baud rate
     constexpr uint8_t  data_bits       = 8;     // Data bits for UART communication
     constexpr uint8_t  pot_adc_ch      = 0;     // ADC channel for potentiometer
     constexpr uint16_t led_blink_intvl = 200;   // LED blink interval in milliseconds
     constexpr uint16_t max_adc_intvl   = 100;   // Maximum ADC read interval in ms
     constexpr uint16_t check_btn_intvl = 1000;  // Interval to print button press (ms)
     constexpr uint16_t debounce_limit  = 8000;  // Button debounce limit
-    constexpr bool     on_interrupt    = true;  // Enable function on timer interrupt
-    constexpr bool     ms_timer        = true;  // Timer interval (ms)
+    constexpr uint8_t  on_interrupt    = 1;     // Enable function on timer_1 interrupt
+    constexpr uint8_t  ms_timer        = 1;     // Timer interval (ms)
     constexpr uint8_t  led_pwm_pin     = 3;     // LED (PWM) pin
     constexpr uint8_t  btn_pin         = 5;     // Button pin
 }
 
 // Main loop declaration
-void loop(Serial &serial, LED &led, Button &btn, Timer &timer, CMD &cmd);
+void loop(Serial &serial, LED &led, Button &btn, Timer &timer_0, Timer &timer_1, 
+          Command &cmd);
 
 //=============================================================================
 // Main (setup)
 //=============================================================================
 int main(void) {
-    Serial serial;
-    LED    led(cfg::led_pwm_pin, true);
-    Button btn(cfg::btn_pin);
-    Timer  timer(Timer::TIMER1, Timer::MILLIS); 
-    CMD    cmd;
+    Serial  serial;
+    LED     led(cfg::led_pwm_pin, true);
+    Button  btn(cfg::btn_pin);
+    Timer   timer_0(Timer::TIMER0, Timer::MILLIS);
+    Timer   timer_1(Timer::TIMER1, Timer::MILLIS); 
+    Command cmd;
 
     // Initialize the modules
     serial.uart_init(cfg::baud_rate, cfg::data_bits);
-    timer.init(cfg::led_blink_intvl, serial);
+    timer_0.configure(Timer::CTC, cfg::ms_timer, serial);
+    timer_1.configure(Timer::CTC, cfg::led_blink_intvl, serial);
     btn.init();
 
     sei(); // Enable Interupts globally
 
-    loop(serial, led, btn, timer, cmd);
+    loop(serial, led, btn, timer_0, timer_1, cmd);
     
     return 0;
 }
@@ -61,7 +64,8 @@ int main(void) {
 //=============================================================================
 // Main loop
 //=============================================================================
-void loop(Serial &serial, LED &led, Button &btn, Timer &timer, CMD &cmd) {
+void loop(Serial &serial, LED &led, Button &btn, Timer &timer_0, Timer &timer_1, 
+          Command &cmd) {
     char rec_cmd[serial.buf_size]; // Buffer for received commands
     bool new_cmd = false;          // Flag to indicate new command received
 
@@ -83,48 +87,47 @@ void loop(Serial &serial, LED &led, Button &btn, Timer &timer, CMD &cmd) {
 
         // Execute the command
         switch(cmd.cmd) {
-            case CMD::CMD_NONE: break;
+            case Command::NO_CMD: break;
             /***************************** PART 1 *****************************/
-            case CMD::LED_BLINK:
-                if (new_cmd) timer.set_prescaler(cfg::led_blink_intvl, serial);
-                led.blink(cfg::on_interrupt, timer);
+            case Command::LED_BLINK:
+                if (new_cmd) {
+                    timer_1.configure(Timer::CTC, cfg::led_blink_intvl, serial);
+                    led.set_power(UINT8_MAX); // Set the LED to full power
+                }
+                led.blink(cfg::on_interrupt, timer_1);
                 break;
             /***************************** PART 2 *****************************/
-            case CMD::LED_ADC:
-                if (new_cmd) timer.set_prescaler(cfg::ms_timer, serial);
-                led.adc_blink(timer, serial, cfg::pot_adc_ch, 
+            case Command::LED_ADC:
+                if (new_cmd) {
+                    timer_1.configure(Timer::CTC, cfg::ms_timer, serial);
+                    led.set_power(UINT8_MAX); // Set the LED to full power
+                }
+                led.adc_blink(timer_1, serial, cfg::pot_adc_ch, 
                                  cfg::max_adc_intvl);
                 break;
             /***************************** PART 3 *****************************/
-            case CMD::LED_PWR:
+            case Command::LED_PWR:
                 if (new_cmd) {
+                    // led.set_power(cmd.cmd_val1);
+                    timer_1.configure(Timer::CTC, cmd.cmd_val2, serial);
                     led.set_power(cmd.cmd_val1);
-                    timer.set_prescaler(cmd.cmd_val2, serial);
                 }
-                led.blink(cfg::on_interrupt, timer);
+                led.blink(cfg::on_interrupt, timer_1);
                 break;
             /***************************** PART 4 *****************************/
-            case CMD::BTN:
-                if (new_cmd) timer.set_prescaler(cfg::ms_timer, serial);
-                btn.count_presses();
-                btn.debounce_presses(cfg::check_btn_intvl, cfg::debounce_limit, 
-                                        timer, serial);
-                
-            /*  Vi använder en kombination av PinChangeInterrupt och ett gräns-
-                värde ('debounce_limit') för att filtrera ut oavsiktliga studsar  
-                över tiden som anges i `check_btn_intvl` (I detta exempel är 
-                gränsvärdet 8000 studs per 1000ms). Genom att sänka värdet på
-                båda dessa variabler kan vi uppnå en snabbare respons om syftet
-                är att t.ex. tända/släcka en LED och vill att det ska vara 'instant'.
-                När ett knapptryck har passerat gräns-värdet kan vi utföra t.ex. 
-                sätta en flagga som vi pollar varje iteration här, istället för att
-                bara printa ut att gränsvärdet är uppnått.
-            */ 
+            case Command::BUTTON:
+                if (new_cmd) {
+                    led.turn_off();
+                    timer_0.configure(Timer::CTC, cfg::ms_timer, serial);
+                    timer_1.configure(Timer::EXT_CLOCK, cfg::ms_timer, serial);
+                }
+                btn.print_presses(cfg::check_btn_intvl, timer_0, serial);
                 break;
             /***************************** PART 5 *****************************/
-            case CMD::LED_RAMP:
-                if (new_cmd) timer.set_prescaler(cfg::ms_timer, serial);
-                led.ramp_brightness(cmd.cmd_val1, timer);
+            case Command::LED_RAMP:
+                if (new_cmd)
+                    timer_1.configure(Timer::CTC, cfg::ms_timer, serial);
+                led.ramp_brightness(cmd.cmd_val1, timer_1);
                 break;
         }
 
