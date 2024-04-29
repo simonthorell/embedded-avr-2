@@ -8,23 +8,6 @@ Timer* Timer::timer_0_instance = nullptr;
 Timer* Timer::timer_1_instance = nullptr;
 Timer* Timer::timer_2_instance = nullptr;
 
-// Definitions of static constants (prescaler settings)
-const Timer::PrescalerSettings Timer::ms_settings_8bit[] = {
-    {15, 64}, {125, 256}, {250, 1024}
-};
-
-const Timer::PrescalerSettings Timer::us_settings_8bit[] = {
-    {500, 8}, {2000, 64}, {8000, 256}, {32000, 1024}
-};
-
-const Timer::PrescalerSettings Timer::ms_settings_16bit[] = {
-    {30, 8}, {250, 64}, {1000, 256}, {UINT32_MAX, 1024}
-};
-
-const Timer::PrescalerSettings Timer::us_settings_16bit[] = {
-    {3000, 1}, {30000, 8}, {250000, 64}, {1000000, 256}, {UINT32_MAX, 1024}
-};
-
 //=============================================================================
 // Timer Constructor
 // Description: Accepts the timer type (0,1,2) and the needed time unit 
@@ -49,22 +32,16 @@ Timer::Timer(TimerNum num, TimeUnit unit)
             }
             break;
     }
-    // timer_1_instance = this;
 }
 
 //=============================================================================
-// Timer Public Method: init
-// Description: Initialize the timer with the given interval and serial object.
+// Timer Public Method: configure
+// Description: Configure the timer with the given mode and interval.
 //=============================================================================
-void Timer::init(const uint32_t &interval, TimerMode mode, Serial &serial) {
-    configure(mode, interval, serial); // Configure the timer
-}
-
 void Timer::configure(TimerMode mode, uint32_t interval, Serial &serial) {
     stop();                  // Stop the timer before setup 
     cli();                   // Disable interrupts temporarily
     _clear_prescaler_bits(); // Clear the prescaler bits
-    // set_mode(mode);          // Set Mode (NORMAL, CTC, EXT_CLOCK)
 
     // Prescaler settings for ms and us (threshold)
     uint16_t prescaler = set_prescaler(interval, serial);
@@ -72,11 +49,11 @@ void Timer::configure(TimerMode mode, uint32_t interval, Serial &serial) {
                            (_unit == MICROS ? US_PER_SEC : MS_PER_SEC)) - 1);
 
     // Inform user about the set pre-scaler and OCR value
-    char message[64];
+    char message[128];
     snprintf(
         message, sizeof(message),
-        "Timer %d configured (Prescaler: %d, OCR: %lu)\r\n",
-        _num, prescaler, ocr_value
+        "Timer %d configured for interval %lu%s (Prescaler: %d, OCR: %lu)\r\n",
+        _num, interval, (_unit == Timer::MICROS ? "us" : "ms"), prescaler, ocr_value
     );
     serial.uart_put_str(message);
 
@@ -97,7 +74,6 @@ void Timer::configure(TimerMode mode, uint32_t interval, Serial &serial) {
     }
 
     set_mode(mode);    // Set Mode (NORMAL, CTC, EXT_CLOCK)
-
     sei();             // Re-enable interrupts
     start();           // Start the timer again
 }
@@ -124,18 +100,6 @@ void Timer::stop() {
 }
 
 //=============================================================================
-// ISR External Clock (Counter Mode) Implementation
-//=============================================================================
-ISR(TIMER1_CAPT_vect) {
-    // Read the captured value from the ICR1 register
-    // Timer::timer_1_instance->captured_value = ICR1;
-    Timer::timer_1_instance->captured_value = TCNT1;
-
-    // Reset the counter if specific conditions are met?
-    // TCNT1 = 0;
-}
-
-//=============================================================================
 // ISR Timer Compare Match A Implementation
 //=============================================================================
 ISR(TIMER0_COMPA_vect) {
@@ -150,11 +114,7 @@ ISR(TIMER2_COMPA_vect) {
     Timer::handle_timer_interupt(Timer::timer_2_instance);
 }
 
-//=============================================================================
-// Timer Private Method: handleTimerInterrupt
-// Description: Handle the timer interrupt by decrementing the interval_devisor
-//              and incrementing the overflow counter if needed.
-//=============================================================================
+// Static method to handle timer interrupt
 void Timer::handle_timer_interupt(Timer* timer) {
     if (timer->interval_devisor <= 1) {
         timer->overflow_counter++;
@@ -175,12 +135,12 @@ void Timer::set_mode(TimerMode mode) {
         case TIMER0:
             TCCR0A &= ~((1 << WGM01) | (1 << WGM00)); // Clear mode bits
             switch (mode) {
-                case NORMAL:
+                case NORMAL: 
                     break; // No bits needed for normal mode
                 case CTC:
                     TCCR0A |= (1 << WGM01); // Set CTC mode
                     break;
-                case EXT_CLOCK:
+                case EXT_CLOCK: 
                     break; // Not applicable for Timer0
             }
             break;
@@ -189,7 +149,7 @@ void Timer::set_mode(TimerMode mode) {
             TCCR1B &= ~((1 << WGM13) | (1 << WGM12));
             TCCR1B &= ~((1 << ICES1)); // Clear input capture edge select
             switch (mode) {
-                case NORMAL:
+                case NORMAL: 
                     break; // No bits needed for normal mode
                 case CTC:
                     TCCR1B |= (1 << WGM12); // Set CTC mode
@@ -228,7 +188,11 @@ uint16_t Timer::set_prescaler(uint32_t interval, Serial &serial) {
     _adjusted_interval = interval;
     interval_devisor = 1;  // Default to 0
 
-    // Check if the interval is over the timer max threshold, if so, find the best divisor
+    /* Check if the interval is greater than the maximum interval that the timer
+       can handle. If so, find the largest divisor that will result in a value
+       under the maximum interval for least CPU usage. ISR will decrement the
+       divisor until it reaches 1 (no division). 
+    */
     if (interval > MAX_INTERVAL) {
         uint32_t best_result = 0;
         // Loop to find the largest divisor with a result under MAX_INTERVAL
@@ -242,25 +206,52 @@ uint16_t Timer::set_prescaler(uint32_t interval, Serial &serial) {
                 }
             }
         }
-        char buf[128];
+        char buf[64];
         if (best_result > 0) {
-            sprintf(buf, "Best divisor: %d gives result %d with modulus 0.\r\n", interval_devisor, _adjusted_interval);
-        } else {
-            sprintf(buf, "No suitable divisor found that divides evenly under the threshold.\r\n");
+            sprintf(buf, "Set Divisor: %d with result %d.\r\n", interval_devisor, 
+                    _adjusted_interval);
+            serial.uart_put_str(buf);
         }
-        serial.uart_put_str(buf);
-    } else {
-        serial.uart_put_str("Interval is under the threshold. No division needed.\r\n");
     }
 
-    // Select settings based on timer type and unit
-    const PrescalerSettings* settings = (_unit == MICROS) ? 
-        (_num == TIMER1 ? us_settings_16bit : us_settings_8bit) :
-        (_num == TIMER1 ? ms_settings_16bit : ms_settings_8bit);
-    const size_t num_settings = sizeof(settings) / sizeof(settings[0]);
-    
-    uint16_t prescaler = 1024;  // Default to the highest prescaler
+    const Timer::PrescalerSettings ms_settings_8bit[] = {
+        {15, 64}, {125, 256}, {250, 1024}
+    };
 
+    const Timer::PrescalerSettings us_settings_8bit[] = {
+        {500, 8}, {2000, 64}, {8000, 256}, {32000, 1024}
+    };
+
+    const Timer::PrescalerSettings ms_settings_16bit[] = {
+        {30, 8}, {250, 64}, {1000, 256}, {UINT32_MAX, 1024}
+    };
+
+    const Timer::PrescalerSettings us_settings_16bit[] = {
+        {3000, 1}, {30000, 8}, {250000, 64}, {1000000, 256}, {UINT32_MAX, 1024}
+    };
+
+    const Timer::PrescalerSettings* settings;
+    size_t num_settings;
+
+    if (_unit == MICROS) {
+        if (_num == TIMER1) {
+            settings = us_settings_16bit;
+            num_settings = sizeof(us_settings_16bit) / sizeof(us_settings_16bit[0]);
+        } else {
+            settings = us_settings_8bit;
+            num_settings = sizeof(us_settings_8bit) / sizeof(us_settings_8bit[0]);
+        }
+    } else {
+        if (_num == TIMER1) {
+            settings = ms_settings_16bit;
+            num_settings = sizeof(ms_settings_16bit) / sizeof(ms_settings_16bit[0]);
+        } else {
+            settings = ms_settings_8bit;
+            num_settings = sizeof(ms_settings_8bit) / sizeof(ms_settings_8bit[0]);
+        }
+    }
+
+    uint16_t prescaler = 1024;  // Default to the highest prescaler
     // Check the interval vs thresholds to set the prescaler
     for (size_t i = 0; i < num_settings; ++i) {
         if (_adjusted_interval < settings[i].threshold) {
@@ -269,12 +260,7 @@ uint16_t Timer::set_prescaler(uint32_t interval, Serial &serial) {
         }
     }
 
-    temp_interval_devisor = interval_devisor;
-
-    // Print value of temp_interval_devisor
-    char buf[128];
-    sprintf(buf, "Temp interval devisor: %d\r\n", temp_interval_devisor);
-    serial.uart_put_str(buf);
+    temp_interval_devisor = interval_devisor; // Save the divisor for ISR
 
     return prescaler;
 }

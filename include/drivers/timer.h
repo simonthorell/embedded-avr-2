@@ -56,17 +56,10 @@ public:
         uint16_t prescaler;
     };
 
-    // Remove later?
-    struct TimerConfig {
-        uint16_t tccrA;
-        uint16_t tccrB;
-    };
-
     // Constructor
     Timer(TimerNum num, TimeUnit unit);
 
     // Public methods
-    void init(const uint32_t &interval, TimerMode mode, Serial &serial);
     void configure(TimerMode mode, uint32_t interval, Serial &serial);
     
     // Static variables
