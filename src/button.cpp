@@ -22,63 +22,22 @@ void Button::init() {
 }
 
 //======================================================================
-// Button Public Methods: is_pressed, count_presses, print_presses
+// Button Public Methods: is_pressed, print_presses
 //======================================================================
 bool Button::is_pressed() { 
     return _gpio.is_low();
 }
 
-void Button::count_presses() {
-    // if (is_pressed()) {
-    //     _button_presses++;
-    // }
-}
+void Button::print_presses(const uint16_t &interval, Timer &timer, Serial &serial) {
+    if (timer.overflow_counter >= interval) {
+        timer.overflow_counter = 0; // Reset the counter after printing
 
-void Button::debounce_presses(uint16_t interval, uint16_t debounce_limit, 
-                              Timer &timer, Serial &serial) {
-
-
-    // Rename _debounce_counter to _prev_overflow_counter
-    if (timer.overflow_counter < (_debounce_counter + interval))
-        return;
-
-    // if (_button_presses > interval) {
-        // Print out message! 
-        serial.uart_put_str("Press passed debounce limit!\r\n");
-    //     return;
-    // }
-
-
-    // if (timer.overflow_counter < (_debounce_counter + interval)) { 
-    //     return; 
-    // }
-
-    // _button_presses = TCNT1;
-    // Reset Timer 1
-    // TCNT1 = 0;
-
-    // // Debounce by checking if the button is pressed for a certain interval
-    // if (_button_presses > debounce_limit) {
-    //     serial.uart_put_str("Press passed debounce limit!\r\n");
-    //     handle_press();
-    // }
-
-    // print_presses(serial);
-    _debounce_counter = timer.overflow_counter; // Reset debounce counter
-}
-
-//======================================================================
-// Button Private Methods: handle_press, print_presses
-//======================================================================
-void Button::handle_press() {
-    /* Execute any command here... */
-}
-
-void Button::print_presses(Serial &serial) {
-    char buf[32];
-    sprintf(buf, "Button Presses: %lu\r\n", _button_presses);
-    serial.uart_put_str(buf);
-    _button_presses = 0;
+        // Print the presses from Timer1 Counter
+        char buf[32];
+        sprintf(buf, "Button presses: %u\r\n", TCNT1);
+        serial.uart_put_str(buf);
+        TCNT1 = 0; // Reset the counter
+    }
 }
 
 //==============================================================================

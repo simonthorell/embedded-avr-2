@@ -14,7 +14,7 @@
 #include <avr/interrupt.h>
 #include "drivers/serial.h"
 #include "drivers/timer.h"
-#include "cmd.h"
+#include "command.h"
 #include "led.h"
 #include "button.h"
 
@@ -34,18 +34,19 @@ namespace cfg {
 }
 
 // Main loop declaration
-void loop(Serial &serial, LED &led, Button &btn, Timer &timer_0, Timer &timer_1, CMD &cmd);
+void loop(Serial &serial, LED &led, Button &btn, Timer &timer_0, Timer &timer_1, 
+          Command &cmd);
 
 //=============================================================================
 // Main (setup)
 //=============================================================================
 int main(void) {
-    Serial serial;
-    LED    led(cfg::led_pwm_pin, true);
-    Button btn(cfg::btn_pin);
-    Timer  timer_0(Timer::TIMER0, Timer::MILLIS);
-    Timer  timer_1(Timer::TIMER1, Timer::MILLIS); 
-    CMD    cmd;
+    Serial  serial;
+    LED     led(cfg::led_pwm_pin, true);
+    Button  btn(cfg::btn_pin);
+    Timer   timer_0(Timer::TIMER0, Timer::MILLIS);
+    Timer   timer_1(Timer::TIMER1, Timer::MILLIS); 
+    Command cmd;
 
     // Initialize the modules
     serial.uart_init(cfg::baud_rate, cfg::data_bits);
@@ -63,7 +64,8 @@ int main(void) {
 //=============================================================================
 // Main loop
 //=============================================================================
-void loop(Serial &serial, LED &led, Button &btn, Timer &timer_0, Timer &timer_1, CMD &cmd) {
+void loop(Serial &serial, LED &led, Button &btn, Timer &timer_0, Timer &timer_1, 
+          Command &cmd) {
     char rec_cmd[serial.buf_size]; // Buffer for received commands
     bool new_cmd = false;          // Flag to indicate new command received
 
@@ -85,57 +87,44 @@ void loop(Serial &serial, LED &led, Button &btn, Timer &timer_0, Timer &timer_1,
 
         // Execute the command
         switch(cmd.cmd) {
-            case CMD::CMD_NONE: break;
+            case Command::NO_CMD: break;
             /***************************** PART 1 *****************************/
-            case CMD::LED_BLINK:
+            case Command::LED_BLINK:
                 if (new_cmd) {
-                    led.set_power(UINT8_MAX); // Set the LED to full power
                     timer_1.configure(Timer::CTC, cfg::led_blink_intvl, serial);
-                    // led.set_power(UINT8_MAX); // Set the LED to full power
+                    led.set_power(UINT8_MAX); // Set the LED to full power
                 }
                 led.blink(cfg::on_interrupt, timer_1);
                 break;
             /***************************** PART 2 *****************************/
-            case CMD::LED_ADC:
+            case Command::LED_ADC:
                 if (new_cmd) {
-                    led.set_power(UINT8_MAX); // Set the LED to full power
                     timer_1.configure(Timer::CTC, cfg::ms_timer, serial);
+                    led.set_power(UINT8_MAX); // Set the LED to full power
                 }
                 led.adc_blink(timer_1, serial, cfg::pot_adc_ch, 
                                  cfg::max_adc_intvl);
                 break;
             /***************************** PART 3 *****************************/
-            case CMD::LED_PWR:
+            case Command::LED_PWR:
                 if (new_cmd) {
-                    led.set_power(cmd.cmd_val1);
+                    // led.set_power(cmd.cmd_val1);
                     timer_1.configure(Timer::CTC, cmd.cmd_val2, serial);
+                    led.set_power(cmd.cmd_val1);
                 }
                 led.blink(cfg::on_interrupt, timer_1);
                 break;
             /***************************** PART 4 *****************************/
-            case CMD::BTN:
+            case Command::BUTTON:
                 if (new_cmd) {
                     led.turn_off();
                     timer_0.configure(Timer::CTC, cfg::ms_timer, serial);
                     timer_1.configure(Timer::EXT_CLOCK, cfg::ms_timer, serial);
                 }
-                btn.count_presses();
-
-                if (timer_0.overflow_counter >= cfg::check_btn_intvl) {
-                    timer_0.overflow_counter = 0;
-
-                    // Print the presses from Timer1 Counter
-                    char buf[32];
-                    sprintf(buf, "Button presses: %u\r\n", TCNT1);
-                    serial.uart_put_str(buf);
-                    TCNT1 = 0;
-                }
-
-            /*  Koppla konding parallelt med knapp för debounce */ 
-
+                btn.print_presses(cfg::check_btn_intvl, timer_0, serial);
                 break;
             /***************************** PART 5 *****************************/
-            case CMD::LED_RAMP:
+            case Command::LED_RAMP:
                 if (new_cmd)
                     timer_1.configure(Timer::CTC, cfg::ms_timer, serial);
                 led.ramp_brightness(cmd.cmd_val1, timer_1);
