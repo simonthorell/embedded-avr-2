@@ -25,7 +25,8 @@ private:
     volatile uint8_t* _ocr8;   // 8-bit output compare register (timer 0, 2)
 
     // Variables for ramp method
-    unsigned long _overflow_counter; 
+    unsigned long _overflow_counter;
+    unsigned long _last_overflow_count;
     bool _ramp_up;
 
     // Validation methods (compile-time checks)
