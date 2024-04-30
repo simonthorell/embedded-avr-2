@@ -96,9 +96,6 @@ void PWModulation::ramp_output(const uint16_t &cycle_time, Timer &timer) {
     // Calculate the number of timer overflows required for a single step
     uint16_t steps = (cycle_time / (UINT8_MAX * 2)) * 2; // *2 ramps per cycle
 
-    if (timer.overflow_counter < (_overflow_counter))
-        return;
-
     if (_overflow_counter >= steps) {
         if (_ramp_up) {
             if (_duty_cycle < UINT8_MAX) {
